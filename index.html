@@ -448,6 +448,27 @@ body[data-tab="home"] .pagehead{display:none}
 .dmy-cal svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .dmy-native{position:absolute;right:0;bottom:0;width:1px!important;height:1px;opacity:0;pointer-events:none;padding:0;border:0}
 
+/* tab con: một hàng, dính trên đầu, cuộn ngang */
+.subtabs{position:sticky;top:calc(var(--apph,0px) + 8px);box-shadow:0 -10px 0 2px var(--bg),var(--shadow);z-index:20;flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;align-self:stretch!important;max-width:100%;scroll-padding:0 24px;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;cursor:grab}
+.subtabs::-webkit-scrollbar{display:none}
+.subtabs.dragging{cursor:grabbing}.subtabs.dragging button{pointer-events:none}
+.subtabs button{flex:none!important}
+.subtabs.more-r{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent)}
+.subtabs.more-l{-webkit-mask-image:linear-gradient(90deg,transparent,#000 36px);mask-image:linear-gradient(90deg,transparent,#000 36px)}
+.subtabs.more-l.more-r{-webkit-mask-image:linear-gradient(90deg,transparent,#000 36px,#000 calc(100% - 36px),transparent);mask-image:linear-gradient(90deg,transparent,#000 36px,#000 calc(100% - 36px),transparent)}
+.totop{position:fixed;right:18px;bottom:22px;z-index:45;width:44px;height:44px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);box-shadow:0 6px 18px color-mix(in srgb,var(--accent) 40%,transparent);display:grid;place-items:center;cursor:pointer;transition:transform .15s,opacity .15s}
+.totop[hidden]{display:none}
+.totop:hover{transform:translateY(-2px)}
+.totop svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+@media (max-width:640px){.totop{bottom:calc(76px + env(safe-area-inset-bottom,0px));right:14px;width:42px;height:42px}}
+
+tr.pickrow{cursor:pointer}
+tr.pickrow td:first-child b{color:var(--accent);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--accent) 35%,transparent);text-underline-offset:3px}
+tr.pickrow:hover td{background:var(--accent-soft)}
+.panel{scroll-margin-top:calc(var(--apph,0px) + 72px)}
+@keyframes flashp{0%{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 55%,transparent)}100%{box-shadow:var(--shadow)}}
+.panel.flash{animation:flashp 1.4s ease-out}
+
 </style>
 </head>
 <body>
@@ -775,23 +796,26 @@ function watchResult(justSent){
 /* ---------- đăng nhập: 1 tài khoản ↔ 1 điện thoại ---------- */
 function lgMsg(level,text){const m=$("lgMsg");m.hidden=!text;m.className="result "+level;m.textContent=text||"";}
 let pendingReq=null;
+const DEMO_NOTE=()=>Store.live?"":" (Đang ở chế độ thử: dữ liệu chỉ nằm trong trình duyệt này, nên tài khoản và mật khẩu giảng viên cấp trên máy khác không tới được đây. Cần bật đồng bộ Firebase để dùng giữa máy giảng viên và điện thoại sinh viên.)";
 async function login(){
   const mssv=$("lgMssv").value.trim(), pw=$("lgPass").value, k=keyOf(mssv); $("btnRequest").hidden=true; pendingReq=null;
   if(!mssv||!pw){ lgMsg("warn","Nhập MSSV và mật khẩu."); return; }
   $("btnLogin").disabled=true; lgMsg("warn","Đang kiểm tra…");
   try{
     const acc=await Store.get("accounts/"+k);
-    if(!acc){ lgMsg("bad","MSSV này chưa được giảng viên cấp tài khoản."); return; }
-    if(await hashPass(k,pw)!==acc.passHash){ lgMsg("bad","Sai mật khẩu. Quên mật khẩu thì liên hệ giảng viên để cấp lại."); return; }
-    const owner=await Store.get("deviceOwners/"+deviceId);
-    if(owner && owner!==k){ lgMsg("bad","Điện thoại này đã khoá với tài khoản MSSV "+(await Store.get("accounts/"+owner+"/mssv")||owner)+". Mỗi điện thoại chỉ dùng cho một tài khoản."); return; }
+    if(!acc){ lgMsg("bad","MSSV này chưa được giảng viên cấp tài khoản."+DEMO_NOTE()); return; }
+    if(await hashPass(k,pw)!==acc.passHash){ lgMsg("bad","Sai mật khẩu. Quên mật khẩu thì liên hệ giảng viên để cấp lại."+DEMO_NOTE()); return; }
+    let owner=await Store.get("deviceOwners/"+deviceId);
+    // dấu khoá cũ: tài khoản kia đã bị gỡ máy / chuyển máy / xoá thì giải phóng điện thoại này
+    if(owner && owner!==k && (await Store.get("accounts/"+owner+"/deviceId"))!==deviceId){ await Store.set("deviceOwners/"+deviceId,null); owner=null; }
+    if(owner && owner!==k){ const om=await Store.get("accounts/"+owner+"/mssv")||owner; lgMsg("bad","Điện thoại này đang khoá với tài khoản MSSV "+om+". Mỗi điện thoại chỉ dùng cho một tài khoản. Muốn dùng máy này cho MSSV "+mssv+", nhờ giảng viên bấm \"Gỡ điện thoại\" ở tài khoản "+om+"."); return; }
     if(!acc.deviceId){
       await Store.set("accounts/"+k+"/deviceId",deviceId); await Store.set("accounts/"+k+"/fp",FP); await Store.set("accounts/"+k+"/ua",shortUA()); await Store.set("accounts/"+k+"/boundAt",Date.now());
       await Store.set("deviceOwners/"+deviceId,k);
     } else if(acc.deviceId!==deviceId){
       pendingReq={k,mssv}; $("btnRequest").hidden=false;
       const req=await Store.get("requests/"+k);
-      lgMsg("bad","Tài khoản này đã khoá vào một điện thoại khác"+(acc.boundAt?" từ ngày "+new Date(acc.boundAt).toLocaleDateString("vi-VN"):"")+". "+(req&&req.deviceId===deviceId?"Bạn đã gửi yêu cầu đổi máy, đang chờ giảng viên duyệt.":"Nếu đã đổi hoặc mất máy, gửi yêu cầu và báo giảng viên duyệt."));
+      lgMsg("bad","Tài khoản này đã khoá vào một điện thoại khác"+(acc.boundAt?" từ ngày "+new Date(acc.boundAt).toLocaleDateString("vi-VN"):"")+". "+(req&&req.deviceId===deviceId?"Bạn đã gửi yêu cầu đổi máy, đang chờ giảng viên duyệt.":"Nếu đã đổi hoặc mất máy, gửi yêu cầu và báo giảng viên duyệt.")+DEMO_NOTE());
       return;
     }
     ls.set("dd-login",k); ls.set("dd-active",String(Date.now())); $("lgPass").value=""; lgMsg("",null); enter(k);
