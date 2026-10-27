@@ -552,12 +552,10 @@ tr.pickrow:hover td{background:var(--accent-soft)}
 
 <script>
 /* ===================== CẤU HÌNH (giống nhau ở cả 2 file) =====================
-   FIREBASE_CONFIG: để điện thoại sinh viên gửi điểm danh về máy giảng viên.
-   Firebase Console → tạo dự án → Build → Realtime Database → Create database;
-   Project settings → Your apps → Web app → sao chép firebaseConfig dán vào đây
-   (dán GIỐNG NHAU vào cả giang-vien.html và sinh-vien.html).
-   Để null: chế độ thử, 2 trang chỉ đồng bộ với nhau trên cùng một máy, cùng trình duyệt. */
-const FIREBASE_CONFIG = null;
+   SHEET_URL: địa chỉ ứng dụng web Apps Script của Google Sheet (kết thúc bằng /exec),
+   để máy giảng viên và điện thoại sinh viên dùng chung dữ liệu. Xem file HUONG-DAN-GOOGLE-SHEET.
+   Để trống: chế độ thử, dữ liệu chỉ nằm trong trình duyệt của máy này. */
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbzOLdroPgqX1sqaNq51lWA9xrRxjA3tzfHGlXIRJH8JASH-Wps-7Trqh_PVwuU6St73Cg/exec";
 const WINDOW_MS = 5000;          // mã đổi sau mỗi 5 giây
 
 const $ = id => document.getElementById(id);
@@ -591,40 +589,66 @@ function longDate(d=new Date()){ const w=["Chủ nhật","Thứ hai","Thứ ba",
 function shortUA(){ const u=navigator.userAgent, m=u.match(/\(([^)]+)\)/); return (m?m[1]:u).slice(0,70); }
 let deviceId = ls.get("dd-device"); if(!deviceId){deviceId=rid(8); ls.set("dd-device",deviceId);}
 
-/* ---------- Kho dữ liệu: Firebase Realtime Database, hoặc localStorage (chế độ thử) ---------- */
+/* ---------- Kho dữ liệu: Google Sheet (qua Apps Script), hoặc localStorage (chế độ thử) ---------- */
+const ddSegs=p=>String(p||"").split("/").filter(Boolean);
+const ddClone=v=>v==null?null:JSON.parse(JSON.stringify(v));
+function ddSetIn(o,segs,val){ if(!segs.length) return ddClone(val); const r=(o&&typeof o==="object")?{...o}:{}; const ch=ddSetIn(r[segs[0]],segs.slice(1),val); if(ch==null||(typeof ch==="object"&&!Object.keys(ch).length)) delete r[segs[0]]; else r[segs[0]]=ch; return Object.keys(r).length?r:null; }
+function ddGetIn(o,segs){ for(const k of segs){ if(o==null||typeof o!=="object") return null; o=o[k]; } return o===undefined?null:o; }
 const Store = {
-  live:false, fb:null, subs:[], bc:null,
+  live:false, subs:[], bc:null, sheet:"", ver:null, queue:[], flushing:null, flushTimer:0, pollMs:2500,
   async init(){
-    if(FIREBASE_CONFIG){
-      try{
-        await loadScript("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js");
-        await loadScript("https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js");
-        firebase.initializeApp(FIREBASE_CONFIG); this.fb=firebase.database(); this.live=true; return "live";
-      }catch(e){ return "error"; }
+    if(SHEET_URL){
+      this.sheet=SHEET_URL;
+      try{ const r=await this._call({op:"get",paths:[]}); if(r.error) throw r; this.live=true; this._poll();
+        addEventListener("beforeunload",e=>{ if(this.queue.length||this.flushing){ e.preventDefault(); e.returnValue=""; } });   // còn dữ liệu chưa lưu lên Sheet
+        return "live"; }
+      catch(e){ return "error"; }
     }
     try{ this.bc=new BroadcastChannel("dd-db"); this.bc.onmessage=()=>this._emit(); }catch(e){}
     window.addEventListener("storage",e=>{ if(e.key==="dd-db") this._emit(); });
     return "local";
   },
+  async _call(body){ const r=await fetch(this.sheet,{method:"POST",body:JSON.stringify(body),redirect:"follow"}); if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); },
+  /* ghi: gom các lệnh ghi gần nhau thành một lần gửi; màn hình cập nhật ngay, không chờ mạng */
+  _local(path,val){ const ps=ddSegs(path), p=ps.join("/");
+    this.subs.forEach(s=>{ const ws=ddSegs(s.path), w=ws.join("/");
+      if(p===w||w===""||p.startsWith(w+"/")) s.val=ddSetIn(s.val,ps.slice(ws.length),val);
+      else if(p===""||w.startsWith(p+"/")) s.val=ddClone(ddGetIn(val,ws.slice(ps.length)));
+      else return; this._fire(s); }); },
+  _fire(s){ const j=JSON.stringify(s.val??null); if(j!==s.last){ s.last=j; try{ s.cb(ddClone(s.val)); }catch(e){ console.error(e); } } },
+  _flush(){ clearTimeout(this.flushTimer); this.flushTimer=0;
+    if(this.flushing) return this.flushing.then(()=>this.queue.length?this._flush():null);
+    if(!this.queue.length) return Promise.resolve();
+    const q=this.queue; this.queue=[];
+    this.flushing=(async()=>{ let err=null; for(let i=0;i<3;i++){ try{ const r=await this._call({op:"batch",ops:q.map(x=>({p:x.p,v:x.v}))}); if(r.error) throw new Error(r.error); err=null; break; }catch(e){ err=e; await new Promise(r=>setTimeout(r,800*(i+1))); } }
+      q.forEach(x=>err?x.rej({code:"net",message:"Không lưu được lên Google Sheet"}):x.res()); })().finally(()=>{ this.flushing=null; });
+    return this.flushing; },
+  async _poll(){ for(;;){ await new Promise(r=>setTimeout(r,document.hidden?this.pollMs*3:this.pollMs)); try{ await this._refresh(); }catch(e){} } },
+  async _refresh(force){ if(this.queue.length||this.flushing) return; const subs=this.subs.slice(); if(!subs.length) return;
+    const r=await this._call({op:"get",paths:subs.map(s=>s.path),ifVer:force?null:this.ver});
+    if(r.same||this.queue.length||this.flushing) return; this.ver=r.ver; subs.forEach((s,i)=>{ s.val=r.vals[i]; this._fire(s); }); },
   _tree(){ return readJSON("dd-db",{}); },
   _get(tree,path){ return path.split("/").reduce((o,k)=>o==null?null:(o[k]??null),tree); },
   _emit(){ const t=this._tree(); this.subs.forEach(s=>{ const v=this._get(t,s.path); const j=JSON.stringify(v); if(j!==s.last){s.last=j;s.cb(v);} }); },
   watch(path, cb){
-    if(this.live){ const ref=this.fb.ref(path); const h=s=>cb(s.val()); ref.on("value",h); return ()=>ref.off("value",h); }
+    if(this.live){ const s={path,cb,last:undefined,val:null}; this.subs.push(s);
+      (async()=>{ try{ await this._flush(); const r=await this._call({op:"get",paths:[path]}); if(this.subs.includes(s)&&!this.queue.length){ s.val=r.vals[0]; } }catch(e){} if(this.subs.includes(s)) this._fire(s); })();
+      return ()=>{ this.subs=this.subs.filter(x=>x!==s); }; }
     const s={path,cb,last:undefined}; this.subs.push(s); this._emit(); return ()=>{this.subs=this.subs.filter(x=>x!==s)};
   },
   async set(path, val){
-    if(this.live) return this.fb.ref(path).set(val);
+    if(this.live){ this._local(path,val); const p=new Promise((res,rej)=>this.queue.push({p:path,v:val??null,res,rej})); if(!this.flushTimer&&!this.flushing) this.flushTimer=setTimeout(()=>this._flush(),120); else if(this.flushing) this.flushing.then(()=>this._flush()); return p; }
     const t=this._tree(), ks=path.split("/"); let o=t; ks.slice(0,-1).forEach(k=>{ if(typeof o[k]!=="object"||o[k]===null) o[k]={}; o=o[k]; });
     if(val===null) delete o[ks.at(-1)]; else o[ks.at(-1)]=val;
     try{ localStorage.setItem("dd-db",JSON.stringify(t)); }catch(e){ throw {code:"quota",message:"Bộ nhớ trình duyệt đầy"}; }
     this.bc?.postMessage(1); this._emit();
   },
-  async get(path){ if(this.live){ return (await this.fb.ref(path).get()).val(); } return this._get(this._tree(),path); }
+  async get(path){ if(this.live){ await this._flush(); return (await this._call({op:"get",paths:[path]})).vals[0]; } return this._get(this._tree(),path); }
 };
 
 </script>
 <script>
+Store.pollMs=4000;   // nhiều điện thoại cùng hỏi Google Sheet: hỏi thưa hơn máy giảng viên
 /* ===================== TRANG SINH VIÊN ===================== */
 const PREP_TTL = 5*60*1000;   // ảnh chụp có hiệu lực 5 phút
 const POS_TTL = 60*1000;      // vị trí phải đo trong vòng 60 giây
@@ -796,7 +820,7 @@ function watchResult(justSent){
 /* ---------- đăng nhập: 1 tài khoản ↔ 1 điện thoại ---------- */
 function lgMsg(level,text){const m=$("lgMsg");m.hidden=!text;m.className="result "+level;m.textContent=text||"";}
 let pendingReq=null;
-const DEMO_NOTE=()=>Store.live?"":" (Đang ở chế độ thử: dữ liệu chỉ nằm trong trình duyệt này, nên tài khoản và mật khẩu giảng viên cấp trên máy khác không tới được đây. Cần bật đồng bộ Firebase để dùng giữa máy giảng viên và điện thoại sinh viên.)";
+const DEMO_NOTE=()=>Store.live?"":" (Đang ở chế độ thử: dữ liệu chỉ nằm trong trình duyệt này, nên tài khoản và mật khẩu giảng viên cấp trên máy khác không tới được đây. Cần nối Google Sheet để dùng giữa máy giảng viên và điện thoại sinh viên.)";
 async function login(){
   const mssv=$("lgMssv").value.trim(), pw=$("lgPass").value, k=keyOf(mssv); $("btnRequest").hidden=true; pendingReq=null;
   if(!mssv||!pw){ lgMsg("warn","Nhập MSSV và mật khẩu."); return; }
