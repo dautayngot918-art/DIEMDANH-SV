@@ -486,7 +486,7 @@ tr.pickrow:hover td{background:var(--accent-soft)}
 .seqlegend i{width:12px;height:12px;border-radius:3px;background:var(--surface-2,#efedf6);border:1px solid var(--line)}
 .seqlegend i.ok{background:var(--ok);border-color:var(--ok)}.seqlegend i.bad{background:var(--bad);border-color:var(--bad)}
 /* hộp báo kết quả */
-.resmodal{position:fixed;inset:0;z-index:60;background:rgba(20,10,40,.55);display:grid;place-items:center;padding:20px}
+.resmodal{position:fixed;inset:0;z-index:90;background:rgba(20,10,40,.55);display:grid;place-items:center;padding:20px}
 .resmodal[hidden]{display:none}
 .resbox{background:var(--surface);border-radius:20px;padding:26px 22px 20px;max-width:380px;width:100%;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center;box-shadow:0 20px 60px rgba(0,0,0,.35);border-top:8px solid var(--line)}
 .resbox h3{margin:0;font-size:1.35rem}
@@ -528,6 +528,18 @@ body.noscroll{overflow:hidden}
 .picov img{width:min(420px,88vw);height:auto;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.5);background:#fff}
 .picov figcaption{color:#fff;font-weight:600;text-align:center}
 .picov button{position:absolute;top:16px;right:16px;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.15);color:#fff;font-size:1.3rem;cursor:pointer}
+
+/* màn hình quét toàn màn hình, dãy ô ở dưới */
+.scanfull video{transform:none}
+.scanframe{position:absolute;left:50%;top:42%;width:min(70vw,340px);aspect-ratio:1;transform:translate(-50%,-50%);border:3px solid rgba(255,255,255,.95);border-radius:20px;box-shadow:0 0 0 9999px rgba(0,0,0,.4);pointer-events:none}
+.scantop{position:absolute;top:calc(env(safe-area-inset-top,0px) + 66px);left:16px;right:16px;text-align:center;color:#fff;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.8)}
+.scanbottom{position:absolute;left:0;right:0;bottom:0;padding:14px 14px calc(env(safe-area-inset-bottom,0px) + 16px);background:linear-gradient(transparent,rgba(0,0,0,.75) 30%);display:flex;flex-direction:column;gap:8px}
+.scanbottom[hidden]{display:none}
+.scanbottom .seqcells{grid-template-columns:repeat(auto-fill,minmax(38px,1fr))}
+.scanbottom .seqcells .cell{height:38px;background:rgba(255,255,255,.18);color:#fff;border-color:rgba(255,255,255,.35)}
+.scanbottom .seqcells .cell.ok{background:var(--ok);border-color:#fff}
+.scanbottom .seqcells .cell.bad{background:var(--bad);border-color:var(--bad)}
+.scanbottom .seqlegend{color:rgba(255,255,255,.85);justify-content:center}
 
 </style>
 </head>
@@ -601,15 +613,12 @@ body.noscroll{overflow:hidden}
       </div>
       <button class="btn primary big" id="btnSend">Điểm danh</button>
       <div id="liveScan" hidden style="display:flex;flex-direction:column;gap:10px">
-        <div class="scanbox" id="scanBox" hidden><video id="scanVideo" playsinline muted autoplay></video></div>
-        <div class="seqcells" id="seqCells" hidden aria-live="polite"></div>
-        <div class="seqlegend" id="seqLegend" hidden><span><i class="ok"></i>Quét được</span><span><i class="bad"></i>Lỡ mã, quét tiếp mã sau</span><span><i></i>Chưa tới</span></div>
-        <span class="hint" id="scanTxt"></span>
         <button class="btn primary big" id="btnScan">📷 Bật camera quét mã QR</button>
       </div>
       <div class="result" id="msg" hidden></div>
     </div>
   </div>
+  <div class="camfull scanfull" id="scanFull" hidden role="dialog" aria-label="Quét mã QR"><video id="scanVideo" playsinline muted autoplay></video><div class="scanframe"></div><button type="button" class="camx" id="btnScanX" aria-label="Dừng quét">✕</button><div class="scantop" id="scanTxt"></div><div class="scanbottom" id="seqWrap" hidden><div class="seqcells" id="seqCells" aria-live="polite"></div><div class="seqlegend"><span><i class="ok"></i>Quét được</span><span><i class="bad"></i>Lỡ mã, quét tiếp mã sau</span><span><i></i>Chưa tới</span></div></div></div>
   <div class="camfull" id="camFull" hidden role="dialog" aria-label="Chụp ảnh khuôn mặt"><video id="video" playsinline muted autoplay></video><div class="camframe"></div><button type="button" class="camx" id="btnCamOff" aria-label="Đóng camera">✕</button><div class="camtip">Đưa khuôn mặt vào khung, nhìn thẳng rồi bấm nút tròn</div><button type="button" class="shutter" id="btnShutter" aria-label="Chụp ảnh"></button></div>
   <div class="camfull view" id="picView" hidden role="dialog" aria-label="Xem ảnh"><img id="picBig" alt="Ảnh khuôn mặt"><button type="button" class="camx" id="picClose" aria-label="Đóng">✕</button><div class="picbar"><button class="btn" id="picRetake">Chụp lại</button><button class="btn primary" id="picOk">Dùng ảnh này</button></div></div>
   <div class="resmodal" id="resModal" hidden role="dialog" aria-modal="true" aria-labelledby="resTitle"><div class="resbox" id="resBox"><div class="resic" id="resIc"></div><h3 id="resTitle"></h3><p id="resText"></p><p class="hint" id="resSub"></p><button class="btn primary big" id="resClose">Đóng</button></div></div>
@@ -10830,7 +10839,7 @@ const Store = {
 <script>
 Store.pollMs=4000;   // nhiều điện thoại cùng hỏi Google Sheet: hỏi thưa hơn máy giảng viên
 /* ===================== TRANG SINH VIÊN ===================== */
-const PREP_TTL = 5*60*1000;   // ảnh chụp có hiệu lực 5 phút
+const PREP_TTL = 6*60*60*1000;   // ảnh chụp dùng cho cả buổi (gắn với buổi học), không bắt chụp lại giữa chừng
 const POS_TTL = 60*1000;      // vị trí phải đo trong vòng 60 giây
 let geoWatch=null;
 const FP=fingerprint();
@@ -10970,8 +10979,8 @@ function cellsReset(){ const s=session; if(!s) return; const K=+s.room.codeCount
 function renderCells(){ const box=$("seqCells"); box.innerHTML="";
   for(let i=0;i<cellN;i++){ const st=cells[cellBase+i]; const c=document.createElement("span"); c.className="cell"+(st?" "+st:""); c.textContent=i+1; c.title="Mã "+(i+1)+(st==="ok"?": quét được":st==="bad"?": lỡ mã":""); box.appendChild(c); } }
 function cellSet(i,st){ if(i<cellBase) return; if(i>=cellBase+cellN){ if(+session.room.codeCount) return; cellBase=i-cellN+1; } if(cells[i]==="ok"&&st==="bad") return; cells[i]=st; renderCells(); }
-function showCells(on){ $("seqCells").hidden=!on; $("seqLegend").hidden=!on; }
-function stopScan(){ clearInterval(scanTimer); scanTimer=null; scanStream?.getTracks().forEach(t=>t.stop()); scanStream=null; $("scanBox").hidden=true; $("btnScan").hidden=false; }
+function showCells(on){ $("seqWrap").hidden=!on; }
+function stopScan(){ clearInterval(scanTimer); scanTimer=null; scanStream?.getTracks().forEach(t=>t.stop()); scanStream=null; $("scanFull").hidden=true; document.body.classList.remove("noscroll"); $("btnScan").hidden=false; }
 /* ---------- hộp báo kết quả ---------- */
 function showResult(level,title,text,sub){ const m=$("resModal"); $("resBox").className="resbox "+level; $("resIc").textContent=level==="ok"?"✓":level==="bad"?"✕":level==="warn"?"!":"…"; $("resTitle").textContent=title; $("resText").textContent=text||""; $("resSub").textContent=sub||""; $("resClose").hidden=level==="wait"; m.hidden=false; }
 $("resClose").addEventListener("click",()=>{ $("resModal").hidden=true; });
@@ -10991,8 +11000,8 @@ async function startScan(){
       detect=async v=>{ const w=Math.min(800,v.videoWidth), h=Math.round(v.videoHeight*w/v.videoWidth); if(!w||!h) return null; cv.width=w; cv.height=h; cx.drawImage(v,0,0,w,h); const r=jsQR(cx.getImageData(0,0,w,h).data,w,h,{inversionAttempts:"attemptBoth"}); return r?.data||null; }; }
     scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1280}},audio:false});
   }catch(e){ stopScan(); scanTxt(""); msg("bad",e&&e.name==="NotAllowedError"?"Bạn chưa cho phép dùng camera. Cho phép camera rồi bấm Quét lại.":"Không mở được camera hoặc bộ đọc QR. Kiểm tra kết nối mạng, cho phép camera rồi thử lại."); return; }
-  const v=$("scanVideo"); v.srcObject=scanStream; v.play().catch(()=>{}); $("scanBox").hidden=false; scanSeen=null;
-  cellsReset(); showCells(true); scanTxt("Hướng camera vào mã QR giảng viên đang chiếu, giữ yên đến khi 2 ô liền nhau chuyển xanh.");
+  const v=$("scanVideo"); v.srcObject=scanStream; v.play().catch(()=>{}); $("scanFull").hidden=false; document.body.classList.add("noscroll"); scanSeen=null;
+  cellsReset(); showCells(false); scanTxt("Đang chờ mã của giảng viên… Hướng camera vào mã QR trên máy chiếu.");
   const started=Date.now(); let busy=false;
   scanTimer=setInterval(async()=>{
     if(busy||!scanStream) return; busy=true;
@@ -11012,6 +11021,7 @@ async function startScan(){
       if(!m){ scanTxt(/^https?:/.test(raw)?"Đây không phải mã của buổi học. Quét mã đang chiếu trên máy chiếu.":"Không phải mã điểm danh."); return; }
       if(m[1]!==session.id){ scanTxt("Mã của buổi học khác. Quét mã đang chiếu trong lớp."); return; }
       const t=Date.now(), idx=m[3]!=null?+m[3]:seqAtS(session,t);
+      showCells(true);
       if(scanSeen && idx===scanSeen.idx){ scanSeen.last=t; if(t-scanSeen.at>Math.max(12000,codeMs()*2+2000)) scanTxt("Mã không đổi. Có vẻ bạn đang quét ảnh chụp; hãy hướng camera vào màn chiếu trong lớp."); return; }
       // mã kế tiếp, thấy liền sau mã trước (không mất dấu quá 3 giây, mã trước không đứng lâu hơn thời gian chiếu)
       if(scanSeen && idx===scanSeen.idx+1 && t-scanSeen.last<=3000 && t-scanSeen.at<=codeMs()+1500){
@@ -11024,6 +11034,7 @@ async function startScan(){
   },250);
 }
 $("btnScan").addEventListener("click",startScan);
+$("btnScanX").addEventListener("click",()=>{ stopScan(); scanTxt(""); });
 function applyScanMode(){ $("liveScan").hidden=false; $("codeIn").hidden=true; $("btnSend").hidden=true; $("typeWrap").hidden=true; cellsReset(); }
 
 function setState(level,title,text){ const s=$("state"); s.className="bigstate "+level; s.innerHTML=""; const b=document.createElement("b"); b.textContent=title; const t=document.createElement("span"); t.textContent=text; s.append(b,t); }
