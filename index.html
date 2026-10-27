@@ -502,6 +502,33 @@ tr.pickrow:hover td{background:var(--accent-soft)}
 .camcount{position:absolute;inset:0;display:grid;place-items:center;font-size:5rem;font-weight:800;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.6);pointer-events:none}
 .camcount[hidden]{display:none}
 
+/* ảnh khuôn mặt: ô vuông trắng + camera toàn màn hình */
+.selfierow{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.selfiebox{width:120px;height:120px;flex:none;border-radius:14px;border:2px dashed var(--line);background:#fff;padding:0;overflow:hidden;cursor:pointer;display:grid;place-items:center;color:var(--muted);font:inherit;font-size:.85rem;line-height:1.3}
+.selfiebox img{width:100%;height:100%;object-fit:cover;display:block}
+.selfiebox:has(img:not([hidden])){border:2px solid var(--ok)}
+.selfiebtns{display:flex;flex-direction:column;gap:8px;flex:1 1 140px}
+body.noscroll{overflow:hidden}
+.camfull{position:fixed;inset:0;z-index:70;background:#000;display:flex;align-items:center;justify-content:center}
+.camfull[hidden]{display:none}
+.camfull video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.camframe{position:absolute;left:50%;top:44%;width:min(72vw,360px);aspect-ratio:1;transform:translate(-50%,-50%);border:3px solid rgba(255,255,255,.9);border-radius:24px;box-shadow:0 0 0 9999px rgba(0,0,0,.35);pointer-events:none}
+.camtip{position:absolute;top:calc(env(safe-area-inset-top,0px) + 64px);left:16px;right:16px;text-align:center;color:#fff;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.7)}
+.camx{position:absolute;top:calc(env(safe-area-inset-top,0px) + 14px);left:14px;width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.45);color:#fff;font-size:1.3rem;cursor:pointer}
+.camfull .shutter{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 34px);transform:translateX(-50%);width:76px;height:76px;border-radius:50%;border:5px solid #fff;background:transparent;box-shadow:0 2px 14px rgba(0,0,0,.5);cursor:pointer;padding:0}
+.camfull .shutter::after{content:"";position:absolute;inset:6px;border-radius:50%;background:#fff;transition:inset .1s}
+.camfull .shutter:active::after{inset:10px}
+.camfull.view{flex-direction:column;gap:16px;padding:70px 16px calc(env(safe-area-inset-bottom,0px) + 20px)}
+.camfull.view img{max-width:100%;max-height:calc(100% - 80px);border-radius:14px;object-fit:contain}
+.picbar{display:flex;gap:10px;width:min(420px,100%)}.picbar .btn{flex:1}
+.av img{cursor:zoom-in}
+.picov{position:fixed;inset:0;z-index:80;background:rgba(10,4,30,.8);display:grid;place-items:center;padding:20px;cursor:zoom-out}
+.picov[hidden]{display:none}
+.picov figure{margin:0;display:flex;flex-direction:column;gap:10px;align-items:center}
+.picov img{width:min(420px,88vw);height:auto;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.5);background:#fff}
+.picov figcaption{color:#fff;font-weight:600;text-align:center}
+.picov button{position:absolute;top:16px;right:16px;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.15);color:#fff;font-size:1.3rem;cursor:pointer}
+
 </style>
 </head>
 <body>
@@ -560,8 +587,10 @@ tr.pickrow:hover td{background:var(--accent-soft)}
     <div class="step" id="stepCam">
       <div class="hd"><h3>Ảnh khuôn mặt</h3><span class="pill" id="p4"></span></div>
       <span class="hint">Chụp trực tiếp bằng camera trước, rõ mặt. Không dùng được ảnh có sẵn.</span>
-      <div class="cam" id="camBox" hidden><video id="video" playsinline muted autoplay></video><img id="shot" alt="Ảnh vừa chụp" hidden><button type="button" class="shutter" id="btnShutter" aria-label="Chụp ảnh" hidden></button><span class="camcount" id="camCount" hidden></span></div>
-      <div class="row camrow"><button class="btn" id="btnCam">Bật camera</button><button class="btn primary big" id="btnSnap" hidden>📸 Chụp ảnh</button><button class="btn" id="btnCamOff" hidden>Huỷ</button></div>
+      <div class="selfierow">
+        <button type="button" class="selfiebox" id="selfieBox" aria-label="Ảnh khuôn mặt"><img id="shot" alt="Ảnh khuôn mặt vừa chụp" hidden><span id="selfieEmpty">Chưa có ảnh<br><small>Bấm để chụp</small></span></button>
+        <div class="selfiebtns"><button class="btn primary" id="btnCam">📸 Chụp ảnh</button><button class="btn" id="btnView" hidden>Xem lại ảnh</button><button class="btn" id="btnRetake" hidden>Chụp lại</button></div>
+      </div>
     </div>
     <div class="step">
       <div class="hd"><h3>Mã trên máy chiếu</h3><span class="pill" id="p5"></span></div>
@@ -581,6 +610,8 @@ tr.pickrow:hover td{background:var(--accent-soft)}
       <div class="result" id="msg" hidden></div>
     </div>
   </div>
+  <div class="camfull" id="camFull" hidden role="dialog" aria-label="Chụp ảnh khuôn mặt"><video id="video" playsinline muted autoplay></video><div class="camframe"></div><button type="button" class="camx" id="btnCamOff" aria-label="Đóng camera">✕</button><div class="camtip">Đưa khuôn mặt vào khung, nhìn thẳng rồi bấm nút tròn</div><button type="button" class="shutter" id="btnShutter" aria-label="Chụp ảnh"></button></div>
+  <div class="camfull view" id="picView" hidden role="dialog" aria-label="Xem ảnh"><img id="picBig" alt="Ảnh khuôn mặt"><button type="button" class="camx" id="picClose" aria-label="Đóng">✕</button><div class="picbar"><button class="btn" id="picRetake">Chụp lại</button><button class="btn primary" id="picOk">Dùng ảnh này</button></div></div>
   <div class="resmodal" id="resModal" hidden role="dialog" aria-modal="true" aria-labelledby="resTitle"><div class="resbox" id="resBox"><div class="resic" id="resIc"></div><h3 id="resTitle"></h3><p id="resText"></p><p class="hint" id="resSub"></p><button class="btn primary big" id="resClose">Đóng</button></div></div>
 </div>
 </div>
@@ -10844,7 +10875,8 @@ function ipState(){
 function camState(){
   const r=session?.room; if(!r) return false;
   $("stepCam").hidden=!r.reqSelfie; if(!r.reqSelfie) return true;
-  if(prep.selfie){ $("camBox").hidden=false; $("shot").src=prep.selfie; $("shot").hidden=false; $("video").hidden=true; $("btnCam").textContent="Chụp lại"; pill("p4","ok","Đã chụp"); return true; }
+  const has=!!prep.selfie; $("shot").hidden=!has; if(has) $("shot").src=prep.selfie; $("selfieEmpty").hidden=has; $("btnCam").hidden=has; $("btnView").hidden=!has; $("btnRetake").hidden=!has;
+  if(has){ pill("p4","ok","Đã chụp"); return true; }
   pill("p4"); return false;
 }
 function readyAll(){ const a=[checkWho(),geoState(),ipState(),camState()]; return a.every(Boolean); }
@@ -10855,31 +10887,31 @@ function startWatch(){ // cập nhật vị trí liên tục để không dùng 
   try{ geoWatch=navigator.geolocation.watchPosition(p=>{ prep.pos={lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy}; prep.posAt=Date.now(); savePrep(); geoState(); },()=>{},{enableHighAccuracy:true,maximumAge:5000}); }catch(e){}
 }
 $("btnIp").addEventListener("click",async()=>{ $("btnIp").disabled=true; prep.ip=await getIP(); savePrep(); $("btnIp").disabled=false; ipState(); });
-function camOff(){ stream?.getTracks().forEach(t=>t.stop()); stream=null; ["btnSnap","btnCamOff","btnShutter"].forEach(i=>$(i).hidden=true); $("btnCam").hidden=false; }
-$("btnCam").addEventListener("click",async()=>{
+function camOff(){ stream?.getTracks().forEach(t=>t.stop()); stream=null; $("camFull").hidden=true; document.body.classList.remove("noscroll"); }
+async function camOpen(){
   try{
-    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:480},height:{ideal:480}},audio:false});
-    const v=$("video"); v.srcObject=stream;
-    // hiện nút chụp ngay, không chờ video chạy (một số điện thoại không báo video đã chạy)
-    $("camBox").hidden=false; v.hidden=false; $("shot").hidden=true; ["btnSnap","btnCamOff","btnShutter"].forEach(i=>$(i).hidden=false); $("btnCam").hidden=true;
-    v.play().catch(()=>{}); $("camBox").scrollIntoView({behavior:"smooth",block:"center"});
-    if(autoScanAfterSnap) autoSnap();
-  }catch(e){ pill("p4","bad","Không mở được camera"); msg("bad","Không mở được camera. Cho phép trình duyệt dùng camera rồi thử lại."); }
-});
-/* bấm Quét mã khi chưa có ảnh: đếm ngược 3 giây rồi tự chụp, sau đó tự chuyển sang camera sau để quét */
-let camCountTimer=null;
-function autoSnap(){ clearInterval(camCountTimer); let n=3; const el=$("camCount"); el.hidden=false; el.textContent=n;
-  camCountTimer=setInterval(()=>{ if(!stream){ clearInterval(camCountTimer); el.hidden=true; return; } const v=$("video"); if(!v.videoWidth) return; n--; if(n>0){ el.textContent=n; return; } clearInterval(camCountTimer); el.hidden=true; snap(); },1000); }
-function snap(){ clearInterval(camCountTimer); $("camCount").hidden=true;
-  const v=$("video"); if(!v.videoWidth){ msg("warn","Camera đang khởi động, chờ 1 giây rồi bấm Chụp lại."); return; }
-  const c=document.createElement("canvas"), s=Math.min(v.videoWidth,v.videoHeight); c.width=c.height=200;
-  const ctx=c.getContext("2d"); ctx.translate(200,0); ctx.scale(-1,1); ctx.drawImage(v,(v.videoWidth-s)/2,(v.videoHeight-s)/2,s,s,0,0,200,200);
-  prep.selfie=c.toDataURL("image/jpeg",0.6); prep.selfieAt=Date.now(); savePrep();
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:720},height:{ideal:720}},audio:false});
+    const v=$("video"); v.srcObject=stream; $("camFull").hidden=false; document.body.classList.add("noscroll"); v.play().catch(()=>{});
+  }catch(e){ pill("p4","bad","Không mở được camera"); msg("bad","Không mở được camera. Cho phép trình duyệt dùng camera rồi thử lại."); autoScanAfterSnap=false; }
+}
+const pad2=n=>String(n).padStart(2,"0");
+function snap(){
+  const v=$("video"); if(!v.videoWidth){ return; }
+  const S=480, c=document.createElement("canvas"), s=Math.min(v.videoWidth,v.videoHeight); c.width=c.height=S;
+  const x=c.getContext("2d"); x.save(); x.translate(S,0); x.scale(-1,1); x.drawImage(v,(v.videoWidth-s)/2,(v.videoHeight-s)/2,s,s,0,0,S,S); x.restore();
+  // giờ:phút - ngày/tháng/năm ở góc phải dưới
+  const d=new Date(), stamp=pad2(d.getHours())+":"+pad2(d.getMinutes())+" - "+pad2(d.getDate())+"/"+pad2(d.getMonth()+1)+"/"+d.getFullYear();
+  x.font="bold 22px system-ui,Arial,sans-serif"; const w=x.measureText(stamp).width;
+  x.fillStyle="rgba(0,0,0,.55)"; x.fillRect(S-w-24,S-42,w+16,32); x.fillStyle="#fff"; x.textBaseline="middle"; x.textAlign="right"; x.fillText(stamp,S-16,S-26);
+  prep.selfie=c.toDataURL("image/jpeg",0.7); prep.selfieAt=d.getTime(); savePrep();
   camOff(); camState(); msg("",null);
   if(autoScanAfterSnap){ autoScanAfterSnap=false; $("liveScan").scrollIntoView({behavior:"smooth",block:"start"}); setTimeout(startScan,400); }
 }
-$("btnSnap").addEventListener("click",snap); $("btnShutter").addEventListener("click",snap); $("video").addEventListener("click",snap);
-$("btnCamOff").addEventListener("click",()=>{ camOff(); camState(); });
+function picOpen(){ if(!prep.selfie) return camOpen(); $("picBig").src=prep.selfie; $("picView").hidden=false; document.body.classList.add("noscroll"); }
+function picClose(){ $("picView").hidden=true; document.body.classList.remove("noscroll"); }
+$("btnCam").addEventListener("click",camOpen); $("btnRetake").addEventListener("click",camOpen); $("btnView").addEventListener("click",picOpen); $("selfieBox").addEventListener("click",picOpen);
+$("btnShutter").addEventListener("click",snap); $("btnCamOff").addEventListener("click",()=>{ autoScanAfterSnap=false; camOff(); });
+$("picClose").addEventListener("click",picClose); $("picOk").addEventListener("click",picClose); $("picRetake").addEventListener("click",()=>{ picClose(); camOpen(); });
 const isLive = () => true;   // chỉ quét QR trực tiếp, không gõ số
 async function send(scan){
   if(sending||!session||!session.open) return;
@@ -10947,8 +10979,7 @@ const FAIL_TXT="Điểm danh thất bại. Bạn vui lòng liên hệ giảng vi
 async function startScan(){
   if(!checkWho()){ msg("bad","Bạn không có trong danh sách lớp của buổi này. Liên hệ giảng viên."); return; }
   if(session.room.reqSelfie && !prep.selfie){   // cần ảnh khuôn mặt: mở camera trước để chụp, chụp xong tự quét
-    autoScanAfterSnap=true; $("stepCam").scrollIntoView({behavior:"smooth",block:"center"}); if(!stream) $("btnCam").click();
-    msg("warn","Nhìn vào camera trước: trang tự chụp mặt sau 3 giây, rồi tự bật camera sau để quét mã."); return; }
+    autoScanAfterSnap=true; if(!stream) camOpen(); msg("warn","Chụp ảnh khuôn mặt trước, chụp xong trang tự bật camera sau để quét mã."); return; }
   // vị trí, mạng: tự kiểm tra song song, không bắt bấm từng bước
   const r=session.room; if(r.lat!=null && (!prep.pos||Date.now()-prep.posAt>POS_TTL) && !$("btnGeo").disabled) $("btnGeo").click();
   if(r.reqIp && prep.ip===undefined && !$("btnIp").disabled) $("btnIp").click();
@@ -10961,21 +10992,26 @@ async function startScan(){
     scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1280}},audio:false});
   }catch(e){ stopScan(); scanTxt(""); msg("bad",e&&e.name==="NotAllowedError"?"Bạn chưa cho phép dùng camera. Cho phép camera rồi bấm Quét lại.":"Không mở được camera hoặc bộ đọc QR. Kiểm tra kết nối mạng, cho phép camera rồi thử lại."); return; }
   const v=$("scanVideo"); v.srcObject=scanStream; v.play().catch(()=>{}); $("scanBox").hidden=false; scanSeen=null;
-  cellsReset(); showCells(true); scanTxt("Hướng camera vào mã QR trên máy chiếu, giữ yên đến khi 2 ô liền nhau chuyển xanh.");
-  const started=Date.now(), startIdx=seqAtS(session,started); let busy=false;
+  cellsReset(); showCells(true); scanTxt("Hướng camera vào mã QR giảng viên đang chiếu, giữ yên đến khi 2 ô liền nhau chuyển xanh.");
+  const started=Date.now(); let busy=false;
   scanTimer=setInterval(async()=>{
     if(busy||!scanStream) return; busy=true;
     try{
-      const now=Date.now(), est=seqAtS(session,now), K=+session.room.codeCount||0, last=K>0?(session.seqOff||0)+K-1:Infinity;
-      // mã đã qua mà chưa đọc được: tô đỏ (chừa 1 mã cho lệch đồng hồ điện thoại)
-      for(let i=Math.max(startIdx,cellBase);i<est-1;i++) if(!cells[i]) cellSet(i,"bad");
-      if(est>last+1 || (K===0 && now-started>90000)){ stopScan(); for(let i=cellBase;i<cellBase+cellN;i++) if(!cells[i]) cellSet(i,"bad"); scanTxt("");
-        showResult("bad","Điểm danh thất bại",FAIL_TXT,startIdx>last?"Lượt chiếu mã đã kết thúc trước khi bạn quét. Nếu giảng viên chiếu thêm một lượt, bạn bấm Quét mã lại.":"Chưa đọc được 2 mã liên tiếp trong lượt chiếu này."); return; }
+      const now=Date.now(), K=+session.room.codeCount||0, last=K>0?(session.seqOff||0)+K-1:Infinity;
+      if(!session.open){ stopScan(); scanTxt(""); return; }
+      if(scanSeen){
+        // tính theo mã đã đọc được (không dựa vào đồng hồ điện thoại): mã nào đã qua mà chưa đọc thì tô đỏ
+        const expect=scanSeen.idx+Math.floor((now-scanSeen.at)/codeMs());
+        for(let i=scanSeen.idx+1;i<expect && i<=last;i++) if(!cells[i]) cellSet(i,"bad");
+        if(now-scanSeen.at > codeMs()*(Math.min(last,scanSeen.idx+cellN)-scanSeen.idx+1)+1500){   // đã qua hết lượt mà chưa đủ 2 mã liên tiếp
+          stopScan(); for(let i=cellBase;i<cellBase+cellN;i++) if(!cells[i]) cellSet(i,"bad"); scanTxt("");
+          showResult("bad","Điểm danh thất bại",FAIL_TXT,"Đã đọc được mã nhưng chưa đủ 2 mã liên tiếp trong lượt chiếu này."); return; }
+      } else if(now-started>60000){ stopScan(); scanTxt(""); msg("warn","Chưa đọc được mã nào của buổi học. Giảng viên cần đang chiếu mã; đứng gần màn chiếu hơn rồi bấm quét lại."); return; }
       const raw=await detect(v); if(!raw) return;
       const m=/^DD1:([^:]+):(\d{6})(?::(\d+))?$/.exec(raw);
       if(!m){ scanTxt(/^https?:/.test(raw)?"Đây không phải mã của buổi học. Quét mã đang chiếu trên máy chiếu.":"Không phải mã điểm danh."); return; }
       if(m[1]!==session.id){ scanTxt("Mã của buổi học khác. Quét mã đang chiếu trong lớp."); return; }
-      const t=Date.now(), idx=m[3]!=null?+m[3]:est;
+      const t=Date.now(), idx=m[3]!=null?+m[3]:seqAtS(session,t);
       if(scanSeen && idx===scanSeen.idx){ scanSeen.last=t; if(t-scanSeen.at>Math.max(12000,codeMs()*2+2000)) scanTxt("Mã không đổi. Có vẻ bạn đang quét ảnh chụp; hãy hướng camera vào màn chiếu trong lớp."); return; }
       // mã kế tiếp, thấy liền sau mã trước (không mất dấu quá 3 giây, mã trước không đứng lâu hơn thời gian chiếu)
       if(scanSeen && idx===scanSeen.idx+1 && t-scanSeen.last<=3000 && t-scanSeen.at<=codeMs()+1500){
