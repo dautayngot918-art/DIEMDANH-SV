@@ -10808,7 +10808,7 @@ const Store = {
     if(r.same||this.queue.length||this.flushing) return; this.ver=r.ver; subs.forEach((s,i)=>{ this._merge(s,r.res[i],r.ver); this._fire(s); }); },
   /* ghép kết quả từ Sheet: keys = mọi dòng của nhánh, rows = các dòng mới đổi */
   _merge(s,res,ver){ if(!s.rows) s.rows={}; const keep={}; res.keys.forEach(k=>{ keep[k]=1; }); for(const k in s.rows) if(!keep[k]) delete s.rows[k];
-    for(const k in res.rows) s.rows[k]=res.rows[k]; s.since=ver; s.val=this._asm(s.rows,s.path); },
+    for(const k in res.rows) if(res.rows[k]!==undefined&&!(res.rows[k]===null&&s.rows[k]!=null)) s.rows[k]=res.rows[k]; /* dòng đọc hụt thì giữ giá trị cũ */ s.since=ver; s.val=this._asm(s.rows,s.path); },
   _asm(rows,path){ const ps=ddSegs(path); let tree=null;
     for(const k in rows){ const ks=ddSegs(k); if(ks.length<ps.length) { tree=ddSetIn(tree,ks,rows[k]); continue; } if(!tree||typeof tree!=="object") tree={}; let o=tree; for(let i=0;i<ks.length-1;i++){ if(!o[ks[i]]||typeof o[ks[i]]!=="object") o[ks[i]]={}; o=o[ks[i]]; } o[ks.at(-1)]=rows[k]; }
     return ddClone(ddGetIn(tree,ps)); },
@@ -10898,6 +10898,7 @@ function startWatch(){ // cập nhật vị trí liên tục để không dùng 
 $("btnIp").addEventListener("click",async()=>{ $("btnIp").disabled=true; prep.ip=await getIP(); savePrep(); $("btnIp").disabled=false; ipState(); });
 function camOff(){ stream?.getTracks().forEach(t=>t.stop()); stream=null; $("camFull").hidden=true; document.body.classList.remove("noscroll"); }
 async function camOpen(){
+  if(scanStream) return;   // đang quét mã thì không mở camera chụp mặt
   try{
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:720},height:{ideal:720}},audio:false});
     const v=$("video"); v.srcObject=stream; $("camFull").hidden=false; document.body.classList.add("noscroll"); v.play().catch(()=>{});
@@ -10985,6 +10986,16 @@ function stopScan(){ clearInterval(scanTimer); scanTimer=null; scanStream?.getTr
 function showResult(level,title,text,sub){ const m=$("resModal"); $("resBox").className="resbox "+level; $("resIc").textContent=level==="ok"?"✓":level==="bad"?"✕":level==="warn"?"!":"…"; $("resTitle").textContent=title; $("resText").textContent=text||""; $("resSub").textContent=sub||""; $("resClose").hidden=level==="wait"; m.hidden=false; }
 $("resClose").addEventListener("click",()=>{ $("resModal").hidden=true; });
 const FAIL_TXT="Điểm danh thất bại. Bạn vui lòng liên hệ giảng viên để xác nhận có mặt tại lớp.";
+/* luôn mở camera SAU để quét (có máy trả về camera trước nếu chỉ "ưu tiên") */
+async function backCamera(){
+  camOff(); await new Promise(r=>setTimeout(r,150));
+  let st=null; try{ st=await navigator.mediaDevices.getUserMedia({video:{facingMode:{exact:"environment"},width:{ideal:1280}},audio:false}); }catch(e){}
+  if(!st) st=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1280}},audio:false});
+  const fm=st.getVideoTracks()[0]?.getSettings?.().facingMode;
+  if(fm==="user"){ try{ const back=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==="videoinput"&&/back|rear|sau|environment/i.test(d.label)).pop();
+    if(back){ st.getTracks().forEach(t=>t.stop()); st=await navigator.mediaDevices.getUserMedia({video:{deviceId:{exact:back.deviceId},width:{ideal:1280}},audio:false}); } }catch(e){} }
+  return st;
+}
 async function startScan(){
   if(!checkWho()){ msg("bad","Bạn không có trong danh sách lớp của buổi này. Liên hệ giảng viên."); return; }
   if(session.room.reqSelfie && !prep.selfie){   // cần ảnh khuôn mặt: mở camera trước để chụp, chụp xong tự quét
@@ -10998,7 +11009,7 @@ async function startScan(){
     if("BarcodeDetector" in window && (await BarcodeDetector.getSupportedFormats?.()||[]).includes("qr_code")){ const bd=new BarcodeDetector({formats:["qr_code"]}); detect=async v=>{ const r=await bd.detect(v); return r[0]?.rawValue||null; }; }
     else { if(!window.jsQR) await loadScript(JSQR_URL); const cv=document.createElement("canvas"), cx=cv.getContext("2d",{willReadFrequently:true});
       detect=async v=>{ const w=Math.min(800,v.videoWidth), h=Math.round(v.videoHeight*w/v.videoWidth); if(!w||!h) return null; cv.width=w; cv.height=h; cx.drawImage(v,0,0,w,h); const r=jsQR(cx.getImageData(0,0,w,h).data,w,h,{inversionAttempts:"attemptBoth"}); return r?.data||null; }; }
-    scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1280}},audio:false});
+    scanStream=await backCamera();
   }catch(e){ stopScan(); scanTxt(""); msg("bad",e&&e.name==="NotAllowedError"?"Bạn chưa cho phép dùng camera. Cho phép camera rồi bấm Quét lại.":"Không mở được camera hoặc bộ đọc QR. Kiểm tra kết nối mạng, cho phép camera rồi thử lại."); return; }
   const v=$("scanVideo"); v.srcObject=scanStream; v.play().catch(()=>{}); $("scanFull").hidden=false; document.body.classList.add("noscroll"); scanSeen=null;
   cellsReset(); showCells(false); scanTxt("Đang chờ mã của giảng viên… Hướng camera vào mã QR trên máy chiếu.");
@@ -11143,6 +11154,7 @@ function startSession(){
   unSession?.(); session=null; autoTried=autoTried;
   unSession=Store.watch("session",async s=>{
     if(!me) return;
+    if(!s && session && session.open && (scanStream||!$("resModal").hidden)) return;   // mất tín hiệu thoáng qua khi đang quét: giữ nguyên màn hình quét
     const changed=!session||!s||s.id!==session.id; session=s;
     if(!s||!s.open){ stopScan(); $("stClass").textContent=s?s.className:"Chưa có buổi học"; setState("wait",s?"Điểm danh đã đóng":"Đang chờ giảng viên",s?"Liên hệ giảng viên nếu bạn chưa kịp điểm danh.":"Giảng viên chưa mở điểm danh. Trang tự cập nhật khi buổi học bắt đầu."); $("form").hidden=!!s; return; }
     $("stClass").textContent=[s.className,s.subject,s.kind==="tuy"?(s.kindLabel||"Tuỳ chọn"):({dau:"Đầu giờ",giua:"Giữa giờ",cuoi:"Cuối giờ"}[s.kind]||"")].filter(Boolean).join(" · ")+" · mở lúc "+fmtTime(s.startedAt);
