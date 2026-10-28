@@ -10798,6 +10798,7 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
    để máy giảng viên và điện thoại sinh viên dùng chung dữ liệu. Xem file HUONG-DAN-GOOGLE-SHEET.
    Để trống: chế độ thử, dữ liệu chỉ nằm trong trình duyệt của máy này. */
 const SHEET_URL = "https://script.google.com/macros/s/AKfycbzOLdroPgqX1sqaNq51lWA9xrRxjA3tzfHGlXIRJH8JASH-Wps-7Trqh_PVwuU6St73Cg/exec";
+const APP_VER = "Bản 28/10 · câu hỏi";   // hiện trên đầu trang để biết đang mở đúng file mới
 const WINDOW_MS = 5000;          // mã đổi sau mỗi 5 giây
 
 const $ = id => document.getElementById(id);
@@ -10993,7 +10994,7 @@ function snap(){
   x.fillStyle="rgba(0,0,0,.55)"; x.fillRect(S-w-24,S-42,w+16,32); x.fillStyle="#fff"; x.textBaseline="middle"; x.textAlign="right"; x.fillText(stamp,S-16,S-26);
   prep.selfie=c.toDataURL("image/jpeg",0.7); prep.selfieAt=d.getTime(); savePrep();
   camOff(); camState(); msg("",null);
-  if(autoScanAfterSnap){ autoScanAfterSnap=false; if(isQuiz(session)){ setTimeout(joinRoom,300); } else { $("liveScan").scrollIntoView({behavior:"smooth",block:"start"}); setTimeout(startScan,400); } }
+  if(autoScanAfterSnap){ autoScanAfterSnap=false; setTimeout(joinRoom,300); }
 }
 function picOpen(){ if(!prep.selfie) return camOpen(); $("picBig").src=prep.selfie; $("picView").hidden=false; document.body.classList.add("noscroll"); }
 function picClose(){ $("picView").hidden=true; document.body.classList.remove("noscroll"); }
@@ -11122,9 +11123,9 @@ async function startScan(){
     }finally{ busy=false; }
   },250);
 }
-$("btnScan").addEventListener("click",startScan);
+/* đã bỏ quét QR: không còn nút mở camera sau */
 $("btnScanX").addEventListener("click",()=>{ stopScan(); scanTxt(""); });
-function applyScanMode(){ const q=isQuiz(session); $("liveScan").hidden=q; $("joinWrap").hidden=!q; $("codeIn").hidden=true; $("btnSend").hidden=true; $("typeWrap").hidden=true; $("codeTitle").textContent=q?"Vào phòng điểm danh":"Mã trên máy chiếu"; if(!q) cellsReset(); else quizSync(); }
+function applyScanMode(){ const q=isQuiz(session); $("liveScan").hidden=true; $("joinWrap").hidden=!q; $("codeIn").hidden=true; $("btnSend").hidden=true; $("typeWrap").hidden=true; $("codeTitle").textContent=q?"Vào phòng điểm danh":"Mã trên máy chiếu"; if(!q) cellsReset(); else quizSync(); }
 
 function setState(level,title,text){ const s=$("state"); s.className="bigstate "+level; s.innerHTML=""; const b=document.createElement("b"); b.textContent=title; const t=document.createElement("span"); t.textContent=text; s.append(b,t); }
 function watchResult(justSent){
@@ -11222,7 +11223,7 @@ document.addEventListener("visibilitychange",()=>{ if(!document.hidden) idleChec
 /* ---------- khởi động ---------- */
 (async function boot(){
   const mode=await Store.init();
-  $("mode").textContent = mode==="live"?"Đã kết nối":mode==="error"?"Lỗi kết nối":"Chế độ thử";
+  $("mode").textContent = mode==="live"?"Đã kết nối":mode==="error"?"Lỗi kết nối":"Chế độ thử"; $("mode").textContent+=" · "+APP_VER;
   if(mode==="live") $("mode").classList.add("live");
   Store.watch("settings",v=>{ settings=v||{}; idleCheck(); applyPwRule(); });
   const saved=ls.get("dd-login"); if(saved) enter(saved); else { $("loginBox").hidden=false; $("stClass").textContent="Đăng nhập để điểm danh"; }
@@ -11237,6 +11238,7 @@ function startSession(){
     if(!s||!s.open){ stopScan(); quizClose(); $("stClass").textContent=s?s.className:"Chưa có buổi học"; setState("wait",s?"Điểm danh đã đóng":"Đang chờ giảng viên",s?"Liên hệ giảng viên nếu bạn chưa kịp điểm danh.":"Giảng viên chưa mở điểm danh. Trang tự cập nhật khi buổi học bắt đầu."); $("form").hidden=!!s; return; }
     $("stClass").textContent=[s.className,s.subject,s.kind==="tuy"?(s.kindLabel||"Tuỳ chọn"):({dau:"Đầu giờ",giua:"Giữa giờ",cuoi:"Cuối giờ"}[s.kind]||"")].filter(Boolean).join(" · ")+" · mở lúc "+fmtTime(s.startedAt);
     $("codeHint").textContent=isQuiz(s)?"Nhập mã phòng 4 số trên máy chiếu rồi bấm Vào phòng. Khi giảng viên bấm bắt đầu, mỗi câu hỏi hiện vài giây trên máy chiếu với 4 đáp án, đáp án đúng tô màu xanh. Bấm trên điện thoại đúng hình (▲ ◆ ● ■) của ô xanh. Đúng 2 câu liên tiếp là điểm danh xong.":"Bấm Quét mã, hướng camera sau vào mã QR trên máy chiếu và giữ yên. Mỗi mã đọc được sẽ tô xanh một ô; 2 ô xanh liền nhau là điểm danh xong. Ô đỏ là lỡ mã, cứ giữ camera để quét tiếp mã sau.";
+    if(!isQuiz(s)){ stopScan(); $("form").hidden=true; setState("wait","Đang chờ giảng viên mở phòng","Giảng viên đang dùng bản cũ (quét mã QR). Nhờ giảng viên mở file giang-vien.html mới, trang sẽ tự chuyển sang kiểu câu hỏi."); session=null; return; }
     applyScanMode();
     if(changed){ quizReset(); prep=loadPrep(); setState("wait","Điểm danh đang mở","Làm lần lượt các bước bên dưới. Hoàn tất các bước kiểm tra trước, quét QR sau cùng."); $("form").hidden=false; }
     const ready=readyAll();
