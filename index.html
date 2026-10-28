@@ -540,6 +540,58 @@ body.noscroll{overflow:hidden}
 .scanbottom .seqcells .cell.ok{background:var(--ok);border-color:#fff}
 .scanbottom .seqcells .cell.bad{background:var(--bad);border-color:var(--bad)}
 .scanbottom .seqlegend{color:rgba(255,255,255,.85);justify-content:center}
+/* ---------- điểm danh kiểu câu hỏi ---------- */
+.qz{display:flex;flex-direction:column;align-items:center;gap:14px;width:100%}
+.qz .g{color:#5fe08a}
+.qzlobby{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%}
+.qzlbl{font-size:1rem;opacity:.9;max-width:40ch}
+.qzpin{font-family:var(--f-mono);font-weight:700;font-size:clamp(3.4rem,14vw,6.5rem);letter-spacing:.2em;line-height:1;color:var(--chalk);background:rgba(255,255,255,.08);border-radius:16px;padding:10px 18px 10px 30px}
+.qzcount{font-size:1.05rem}.qzcount b{font-size:1.6rem;color:var(--chalk)}
+.qznames{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;max-width:760px;max-height:30vh;overflow:auto}
+.qznames span{background:rgba(255,255,255,.14);border-radius:999px;padding:4px 12px;font-size:.88rem;animation:qzpop .3s ease}
+.qznames em{opacity:.7}
+@keyframes qzpop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+.qzready{min-width:min(420px,100%);font-size:1.1rem}
+.qzcd{display:flex;flex-direction:column;align-items:center;gap:10px;padding:30px 10px}
+.qzcd b{font-family:var(--f-display);font-size:6rem;line-height:1;color:var(--chalk)}
+.qzcd span{max-width:36ch;opacity:.9}
+.qzrun{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%}
+.qzq{font-family:var(--f-display);font-size:clamp(1.3rem,3.4vw,2.2rem);font-weight:700;max-width:30ch;line-height:1.25}
+.qztiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:min(900px,100%)}
+.qztile{display:flex;align-items:center;gap:14px;border-radius:14px;padding:16px 18px;min-height:86px;text-align:left;color:#fff;font-weight:700;font-size:clamp(1rem,2.2vw,1.35rem);box-shadow:0 4px 0 rgba(0,0,0,.25)}
+.qztile b{font-size:2.4rem;line-height:1;width:1.2em;text-align:center;flex:none}
+.qztile.ok{background:#1fa84f;outline:4px solid #fff;outline-offset:-4px}
+.qztile.no{background:#c7322a;opacity:.92}
+.qznote{font-size:.9rem;opacity:.9}
+.board:fullscreen .qztiles{width:min(1400px,96vw)}
+.board:fullscreen .qztile{min-height:16vh;font-size:2.2rem}
+.board:fullscreen .qztile b{font-size:4rem}
+.board:fullscreen .qzq{font-size:3rem}
+.board:fullscreen .qzpin{font-size:10rem}
+@media (max-width:560px){.qztile{padding:12px;min-height:70px;gap:8px}.qztile b{font-size:1.8rem}}
+/* điện thoại sinh viên */
+.joinrow{display:flex;gap:8px;align-items:stretch}
+.joinrow .codein{flex:1;min-width:0;letter-spacing:.35em}
+.quizfull{position:fixed;inset:0;z-index:80;background:#1d1240;color:#fff;display:flex;flex-direction:column;padding:max(14px,env(safe-area-inset-top)) 14px max(14px,env(safe-area-inset-bottom));gap:12px}
+.quizfull .qtop{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.quizfull .qno{font-family:var(--f-display);font-weight:700;font-size:1.1rem}
+.quizfull .qsec{min-width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:1.4rem;background:rgba(255,255,255,.15)}
+.quizfull .qsec.low{background:#c7322a}
+.quizfull .qmsg{text-align:center;font-size:1rem;min-height:2.6em;display:flex;align-items:center;justify-content:center;padding:0 6px}
+.quizfull .qbtns{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:12px;min-height:0}
+.quizfull .qbtn{border:0;border-radius:18px;background:#f4f1ff;color:#1d1240;font-size:clamp(3rem,16vw,5.5rem);line-height:1;display:grid;place-items:center;box-shadow:0 5px 0 rgba(0,0,0,.35);touch-action:manipulation;-webkit-tap-highlight-color:transparent;cursor:pointer}
+.quizfull .qbtn:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.35)}
+.quizfull .qbtn:disabled{opacity:.3}
+.quizfull .qbtn.pick{opacity:1;background:#f6c453;outline:4px solid #fff}
+.quizfull .qwait{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center}
+.quizfull .qwait b{font-family:var(--f-display);font-size:4.5rem;line-height:1;color:#f6c453}
+.quizfull .seqcells .cell{height:38px;background:rgba(255,255,255,.18);color:#fff;border-color:rgba(255,255,255,.35)}
+.quizfull .seqcells .cell.pick{background:#f6c453;color:#1d1240;border-color:#fff}
+.quizfull .seqcells .cell.ok{background:#1fa84f;border-color:#fff}
+.quizfull .seqcells .cell.bad{background:#c7322a;border-color:#c7322a}
+.quizfull .seqlegend{display:flex;flex-wrap:wrap;gap:4px 12px;justify-content:center;font-size:.75rem;opacity:.85;margin-top:6px}
+.quizfull .seqlegend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px;background:rgba(255,255,255,.3)}
+.quizfull .seqlegend i.ok{background:#1fa84f}.quizfull .seqlegend i.bad{background:#c7322a}.quizfull .seqlegend i.pick{background:#f6c453}
 
 </style>
 </head>
@@ -605,13 +657,17 @@ body.noscroll{overflow:hidden}
       </div>
     </div>
     <div class="step">
-      <div class="hd"><h3>Mã trên máy chiếu</h3><span class="pill" id="p5"></span></div>
+      <div class="hd"><h3 id="codeTitle">Mã trên máy chiếu</h3><span class="pill" id="p5"></span></div>
       <span class="hint" id="codeHint">Quét QR bằng camera điện thoại (không cần gõ), hoặc gõ 6 số trên máy chiếu.</span>
       <div id="typeWrap" style="display:flex;flex-direction:column;gap:6px">
         <input id="codeIn" class="codein" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="off" aria-label="Gõ mã 6 số">
         <div class="result warn" id="typeProg" hidden><span class="scanprog" style="justify-content:flex-start;margin-bottom:6px"><i class="on"></i><i></i></span><span id="typeTxt"></span></div>
       </div>
       <button class="btn primary big" id="btnSend">Điểm danh</button>
+      <div id="joinWrap" hidden style="display:flex;flex-direction:column;gap:8px">
+        <div class="joinrow"><input id="pinIn" class="codein" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off" aria-label="Mã phòng 4 số trên máy chiếu"><button class="btn primary" id="btnJoin">Vào phòng</button></div>
+        <button class="btn primary big" id="btnQuizOpen" hidden>Mở màn hình trả lời</button>
+      </div>
       <div id="liveScan" hidden style="display:flex;flex-direction:column;gap:10px">
         <button class="btn primary big" id="btnScan">📷 Bật camera quét mã QR</button>
       </div>
@@ -621,6 +677,13 @@ body.noscroll{overflow:hidden}
   <div class="camfull scanfull" id="scanFull" hidden role="dialog" aria-label="Quét mã QR"><video id="scanVideo" playsinline muted autoplay></video><div class="scanframe"></div><button type="button" class="camx" id="btnScanX" aria-label="Dừng quét">✕</button><div class="scantop" id="scanTxt"></div><div class="scanbottom" id="seqWrap" hidden><div class="seqcells" id="seqCells" aria-live="polite"></div><div class="seqlegend"><span><i class="ok"></i>Quét được</span><span><i class="bad"></i>Lỡ mã, quét tiếp mã sau</span><span><i></i>Chưa tới</span></div></div></div>
   <div class="camfull" id="camFull" hidden role="dialog" aria-label="Chụp ảnh khuôn mặt"><video id="video" playsinline muted autoplay></video><div class="camframe"></div><button type="button" class="camx" id="btnCamOff" aria-label="Đóng camera">✕</button><div class="camtip">Đưa khuôn mặt vào khung, nhìn thẳng rồi bấm nút tròn</div><button type="button" class="shutter" id="btnShutter" aria-label="Chụp ảnh"></button></div>
   <div class="camfull view" id="picView" hidden role="dialog" aria-label="Xem ảnh"><img id="picBig" alt="Ảnh khuôn mặt"><button type="button" class="camx" id="picClose" aria-label="Đóng">✕</button><div class="picbar"><button class="btn" id="picRetake">Chụp lại</button><button class="btn primary" id="picOk">Dùng ảnh này</button></div></div>
+  <div class="quizfull" id="quizFull" hidden role="dialog" aria-label="Trả lời câu hỏi điểm danh">
+    <div class="qtop"><span class="qno" id="qNo">Phòng chờ</span><span class="qsec" id="qSec" hidden>5</span><button type="button" class="btn" id="btnQuizX" style="padding:6px 12px">Thu nhỏ</button></div>
+    <div class="qmsg" id="qMsg"></div>
+    <div class="qwait" id="qWait"><b id="qWaitBig">…</b><span id="qWaitTxt"></span></div>
+    <div class="qbtns" id="qBtns" hidden></div>
+    <div><div class="seqcells" id="qCells" aria-live="polite"></div><div class="seqlegend"><span><i class="pick"></i>Đã chọn, chờ đáp án</span><span><i class="ok"></i>Đúng</span><span><i class="bad"></i>Sai hoặc lỡ câu</span></div></div>
+  </div>
   <div class="resmodal" id="resModal" hidden role="dialog" aria-modal="true" aria-labelledby="resTitle"><div class="resbox" id="resBox"><div class="resic" id="resIc"></div><h3 id="resTitle"></h3><p id="resText"></p><p class="hint" id="resSub"></p><button class="btn primary big" id="resClose">Đóng</button></div></div>
 </div>
 </div>
@@ -10787,7 +10850,11 @@ const Store = {
     window.addEventListener("storage",e=>{ if(e.key==="dd-db") this._emit(); });
     return "local";
   },
-  async _call(body){ const r=await fetch(this.sheet,{method:"POST",body:JSON.stringify(body),redirect:"follow"}); if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); },
+  async _call(body){ const t0=Date.now(); const r=await fetch(this.sheet,{method:"POST",body:JSON.stringify(body),redirect:"follow"}); if(!r.ok) throw new Error("HTTP "+r.status); const j=await r.json(), t1=Date.now();
+    // đồng bộ giờ với máy chủ Google: giữ lần đo có thời gian khứ hồi ngắn nhất (sai lệch nhỏ nhất)
+    if(typeof j.now==="number"){ const rtt=t1-t0; this.rtt*=1.01; if(rtt<=this.rtt){ this.rtt=rtt; this.off=j.now-(t0+t1)/2; } }
+    return j; },
+  off:0, rtt:1e9, now(){ return Date.now()+this.off; },
   /* ghi: gom các lệnh ghi gần nhau thành một lần gửi; màn hình cập nhật ngay, không chờ mạng */
   _local(path,val){ const ps=ddSegs(path), p=ps.join("/");
     this.subs.forEach(s=>{ const ws=ddSegs(s.path), w=ws.join("/");
@@ -10834,6 +10901,17 @@ const Store = {
   },
   async get(path){ if(this.live){ await this._flush(); const r=await this._call({op:"get",paths:[path],since:[null]}); return this._asm(r.res[0].rows,path); } return this._get(this._tree(),path); }
 };
+
+/* ---------- điểm danh kiểu câu hỏi (máy chiếu hiện đáp án xanh, điện thoại bấm đúng hình) ---------- */
+const QUIZ_SHAPES=[{s:"▲",n:"Tam giác"},{s:"◆",n:"Thoi"},{s:"●",n:"Tròn"},{s:"■",n:"Vuông"}];
+const QUIZ_GRACE=3000;     // cho phép lượt trả lời tới máy chủ trễ tối đa 3 giây sau khi câu hết giờ (mạng chậm)
+const QUIZ_LEAD=4000;      // đếm ngược 4 giây trước câu đầu tiên
+const quizMs = s => Math.max(3,Math.min(60,+(s?.room?.codeSec)||5))*1000;
+const quizAt = (s,t) => (s.seqOff||0)+Math.floor((t-(s.t0||0))/quizMs(s));
+const quizStart = (s,i) => { let off=s.seqOff||0, t0=s.t0||0, b=-1;   // mỗi lượt chạy thêm có t0 riêng
+  for(const o in s.rounds||{}) if(+o<=i && +o>b){ b=+o; } if(b>=0){ off=b; t0=s.rounds[b]; } return t0+(i-off)*quizMs(s); };
+const quizLast = s => { const K=+s.room.codeCount||10; return (s.seqOff||0)+K-1; };
+const isQuiz = s => !!s && s.room?.scanMode==="quiz";
 
 </script>
 <script>
@@ -10915,7 +10993,7 @@ function snap(){
   x.fillStyle="rgba(0,0,0,.55)"; x.fillRect(S-w-24,S-42,w+16,32); x.fillStyle="#fff"; x.textBaseline="middle"; x.textAlign="right"; x.fillText(stamp,S-16,S-26);
   prep.selfie=c.toDataURL("image/jpeg",0.7); prep.selfieAt=d.getTime(); savePrep();
   camOff(); camState(); msg("",null);
-  if(autoScanAfterSnap){ autoScanAfterSnap=false; $("liveScan").scrollIntoView({behavior:"smooth",block:"start"}); setTimeout(startScan,400); }
+  if(autoScanAfterSnap){ autoScanAfterSnap=false; if(isQuiz(session)){ setTimeout(joinRoom,300); } else { $("liveScan").scrollIntoView({behavior:"smooth",block:"start"}); setTimeout(startScan,400); } }
 }
 function picOpen(){ if(!prep.selfie) return camOpen(); $("picBig").src=prep.selfie; $("picView").hidden=false; document.body.classList.add("noscroll"); }
 function picClose(){ $("picView").hidden=true; document.body.classList.remove("noscroll"); }
@@ -11046,17 +11124,17 @@ async function startScan(){
 }
 $("btnScan").addEventListener("click",startScan);
 $("btnScanX").addEventListener("click",()=>{ stopScan(); scanTxt(""); });
-function applyScanMode(){ $("liveScan").hidden=false; $("codeIn").hidden=true; $("btnSend").hidden=true; $("typeWrap").hidden=true; cellsReset(); }
+function applyScanMode(){ const q=isQuiz(session); $("liveScan").hidden=q; $("joinWrap").hidden=!q; $("codeIn").hidden=true; $("btnSend").hidden=true; $("typeWrap").hidden=true; $("codeTitle").textContent=q?"Vào phòng điểm danh":"Mã trên máy chiếu"; if(!q) cellsReset(); else quizSync(); }
 
 function setState(level,title,text){ const s=$("state"); s.className="bigstate "+level; s.innerHTML=""; const b=document.createElement("b"); b.textContent=title; const t=document.createElement("span"); t.textContent=text; s.append(b,t); }
 function watchResult(justSent){
   unResult?.(); const k=K(), name=session.roster?.[k]?.name||"";
-  if(justSent) setState("wait","Đã gửi, đang chờ xác nhận","Giảng viên đang chấm lượt của "+name+".");
+  if(justSent===true) setState("wait","Đã gửi, đang chờ xác nhận","Giảng viên đang chấm lượt của "+name+".");
   unResult=Store.watch("results/"+session.id+"/"+k,r=>{
     if(!r) return;
-    if(r.level==="ok"){ stopScan(); if(justSent||!$("resModal").hidden) showResult("ok","Điểm danh thành công",name+" · "+fmtTime(r.t),"Tên bạn đã chuyển sang xanh trên danh sách của giảng viên."); setState("ok","Điểm danh thành công ✓",name+" · "+fmtTime(r.t)+(r.seq&&r.seq.length===2?" · đã nhận 2 mã liên tiếp (mã "+r.seq[0]+" và "+r.seq[1]+")":"")+". Tên bạn đã chuyển sang xanh trên danh sách của giảng viên."); $("form").hidden=true; }
+    if(r.level==="ok"){ stopScan(); quizClose(); quizDone=true; if(justSent||!$("resModal").hidden) showResult("ok","Điểm danh thành công",name+" · "+fmtTime(r.t),"Tên bạn đã chuyển sang xanh trên danh sách của giảng viên."); setState("ok","Điểm danh thành công ✓",name+" · "+fmtTime(r.t)+(r.seq&&r.seq.length===2?" · đã nhận 2 mã liên tiếp (mã "+r.seq[0]+" và "+r.seq[1]+")":"")+". Tên bạn đã chuyển sang xanh trên danh sách của giảng viên."); $("form").hidden=true; }
     else if(r.level==="warn"){ if(justSent||!$("resModal").hidden) showResult("warn","Đã ghi nhận, chờ giảng viên xem lại","Giảng viên sẽ kiểm tra lại lượt điểm danh của bạn.",r.reasons.join(" · ")); setState("warn","Đã ghi nhận, chờ giảng viên xem lại",r.reasons.join(" · ")); }
-    else { if(justSent||!$("resModal").hidden) showResult("bad","Điểm danh thất bại",FAIL_TXT,r.reasons.join(" · ")); setState("bad","Chưa điểm danh được",r.reasons.join(" · ")+". Liên hệ giảng viên để xác nhận có mặt tại lớp."); $("form").hidden=false; }
+    else { if(justSent==="quiz"&&quizOn) quizClose(); if(justSent||!$("resModal").hidden) showResult("bad","Điểm danh thất bại",FAIL_TXT,r.reasons.join(" · ")); setState("bad","Chưa điểm danh được",r.reasons.join(" · ")+". Liên hệ giảng viên để xác nhận có mặt tại lớp."); $("form").hidden=false; }
   });
 }
 
@@ -11154,16 +11232,17 @@ function startSession(){
   unSession?.(); session=null; autoTried=autoTried;
   unSession=Store.watch("session",async s=>{
     if(!me) return;
-    if(!s && session && session.open && (scanStream||!$("resModal").hidden)) return;   // mất tín hiệu thoáng qua khi đang quét: giữ nguyên màn hình quét
+    if(!s && session && session.open && (scanStream||quizOn||!$("resModal").hidden)) return;   // mất tín hiệu thoáng qua khi đang quét: giữ nguyên màn hình quét
     const changed=!session||!s||s.id!==session.id; session=s;
-    if(!s||!s.open){ stopScan(); $("stClass").textContent=s?s.className:"Chưa có buổi học"; setState("wait",s?"Điểm danh đã đóng":"Đang chờ giảng viên",s?"Liên hệ giảng viên nếu bạn chưa kịp điểm danh.":"Giảng viên chưa mở điểm danh. Trang tự cập nhật khi buổi học bắt đầu."); $("form").hidden=!!s; return; }
+    if(!s||!s.open){ stopScan(); quizClose(); $("stClass").textContent=s?s.className:"Chưa có buổi học"; setState("wait",s?"Điểm danh đã đóng":"Đang chờ giảng viên",s?"Liên hệ giảng viên nếu bạn chưa kịp điểm danh.":"Giảng viên chưa mở điểm danh. Trang tự cập nhật khi buổi học bắt đầu."); $("form").hidden=!!s; return; }
     $("stClass").textContent=[s.className,s.subject,s.kind==="tuy"?(s.kindLabel||"Tuỳ chọn"):({dau:"Đầu giờ",giua:"Giữa giờ",cuoi:"Cuối giờ"}[s.kind]||"")].filter(Boolean).join(" · ")+" · mở lúc "+fmtTime(s.startedAt);
-    $("codeHint").textContent="Bấm Quét mã, hướng camera sau vào mã QR trên máy chiếu và giữ yên. Mỗi mã đọc được sẽ tô xanh một ô; 2 ô xanh liền nhau là điểm danh xong. Ô đỏ là lỡ mã, cứ giữ camera để quét tiếp mã sau.";
+    $("codeHint").textContent=isQuiz(s)?"Nhập mã phòng 4 số trên máy chiếu rồi bấm Vào phòng. Khi giảng viên bấm bắt đầu, mỗi câu hỏi hiện vài giây trên máy chiếu với 4 đáp án, đáp án đúng tô màu xanh. Bấm trên điện thoại đúng hình (▲ ◆ ● ■) của ô xanh. Đúng 2 câu liên tiếp là điểm danh xong.":"Bấm Quét mã, hướng camera sau vào mã QR trên máy chiếu và giữ yên. Mỗi mã đọc được sẽ tô xanh một ô; 2 ô xanh liền nhau là điểm danh xong. Ô đỏ là lỡ mã, cứ giữ camera để quét tiếp mã sau.";
     applyScanMode();
-    if(changed){ prep=loadPrep(); setState("wait","Điểm danh đang mở","Làm lần lượt các bước bên dưới. Hoàn tất các bước kiểm tra trước, quét QR sau cùng."); $("form").hidden=false; }
+    if(changed){ quizReset(); prep=loadPrep(); setState("wait","Điểm danh đang mở","Làm lần lượt các bước bên dưới. Hoàn tất các bước kiểm tra trước, quét QR sau cùng."); $("form").hidden=false; }
     const ready=readyAll();
     const k=K(); const r=k?await Store.get("results/"+s.id+"/"+k).catch(()=>null):null;
-    if(r){ watchResult(); return; }
+    if(r && (r.level==="ok"||!isQuiz(s))){ watchResult(); return; }
+    if(isQuiz(s)){ if(r) watchResult(); quizSync(); }
     if(hashCode && !autoTried && s.room.scanMode==="live"){ autoTried=true; msg("warn","Lớp này không nhận mã quét bằng camera ngoài hay từ ảnh. Bấm Quét mã trên máy chiếu ở cuối trang."); }
     if(hashCode && !autoTried){ autoTried=true;
       if(ready) takeCode(hashCode,"link"); else msg("warn","Bạn quét QR khi chưa hoàn tất các bước nên mã sẽ hết hạn. Làm xong các bước bên dưới rồi quét lại QR trên máy chiếu.");
@@ -11176,6 +11255,82 @@ function startSession(){
 /* ---------- lời chào ---------- */
 function renderHello(){ if(!me) return; $("hiWord").textContent=greetWord()+","; $("hiName").textContent=upperVi(me.name); $("hiClock").textContent=longDate()+" · MSSV "+me.mssv; }
 setInterval(renderHello,30000);
+
+/* ===================== ĐIỂM DANH KIỂU CÂU HỎI =====================
+   Vào phòng bằng mã phòng → chờ giảng viên bấm Sẵn sàng → mỗi câu bấm 1 trong 4 hình.
+   Điện thoại không biết đáp án: chỉ máy chiếu tô xanh hình đúng. Đáp án được công bố sau khi câu hết giờ để tô ô. */
+let quizOn=false, quizTimer=0, qPicks={}, qJoin=null, qAck=null, unLobby=null, qLastI=null, qRound="", qShown="", quizDone=false;
+const qStoreKey = () => "dd-qz-"+(session?.id||"")+"-"+K();
+function quizReset(){ quizClose(); unLobby?.(); unLobby=null; qPicks={}; qJoin=null; qAck=null; qLastI=null; qRound=""; qShown=""; quizDone=false; }
+function quizLoad(){ const d=readJSON(qStoreKey(),null); if(d&&d.k===K()){ qPicks=d.picks||{}; qJoin=d.join||null; } }
+function quizSave(){ ls.set(qStoreKey(),JSON.stringify({k:K(),picks:qPicks,join:qJoin})); }
+function quizSync(){ // gọi mỗi khi buổi học thay đổi
+  const s=session; if(!isQuiz(s)||!s.open||!me) return;
+  if(!qJoin){ quizLoad(); if(qJoin){ watchLobby(); watchResult("quiz"); } }
+  $("btnQuizOpen").hidden=!qJoin||quizDone; $("pinIn").disabled=$("btnJoin").disabled=false;
+  if(qJoin && !quizDone && s.phase==="run" && qRound!==String(s.t0)){ qRound=String(s.t0); quizOpen(); }   // giảng viên vừa bấm bắt đầu (hoặc chạy thêm lượt): tự mở màn hình trả lời
+  if(quizOn) quizTick();
+}
+function watchLobby(){ unLobby?.(); unLobby=Store.watch("lobby/"+session.id+"/"+K(),a=>{ qAck=a; if(a&&a.ok===false&&qJoin&&a.at===qJoin.at){ quizClose(); msg("bad","Sai mã phòng. Xem lại 4 số trên máy chiếu rồi bấm Vào phòng."); $("pinIn").focus(); } if(quizOn) quizTick(); }); }
+async function joinRoom(){
+  if(!session||!session.open||!isQuiz(session)) return;
+  const pin=$("pinIn").value.replace(/\D/g,"");
+  if(!checkWho()){ msg("bad","Bạn không có trong danh sách lớp của buổi này. Liên hệ giảng viên."); return; }
+  if(!/^\d{4}$/.test(pin)){ msg("warn","Nhập đủ 4 số mã phòng đang hiện trên máy chiếu."); $("pinIn").focus(); return; }
+  const k=K(), done=readJSON("dd-done",{});
+  if(done[session.id] && done[session.id]!==k){ msg("bad","Điện thoại này đã điểm danh cho MSSV "+done[session.id]+" trong buổi này. Mỗi điện thoại chỉ điểm danh cho một người."); return; }
+  if(session.room.reqSelfie && !prep.selfie){ autoScanAfterSnap=true; if(!stream) camOpen(); msg("warn","Chụp ảnh khuôn mặt trước, chụp xong trang tự vào phòng."); return; }
+  const r=session.room; $("btnJoin").disabled=true;
+  try{
+    if(r.lat!=null && (!prep.pos||Date.now()-prep.posAt>POS_TTL)){ msg("warn","Đang lấy vị trí, giữ điện thoại yên vài giây…"); prep.pos=await getPosition(); prep.posAt=Date.now(); savePrep(); geoState(); startWatch(); }
+    if(r.reqIp && prep.ip===undefined){ prep.ip=await getIP(); savePrep(); ipState(); }
+    const p=prep.pos&&!prep.pos.error?prep.pos:null, now=Store.now();
+    const d={mssv:me.mssv,pin,at:now,deviceId,fp:FP,lat:p?p.lat:null,lng:p?p.lng:null,acc:p?Math.round(p.acc):null,posAt:p?now-(Date.now()-prep.posAt):null,ip:prep.ip||null,selfie:r.reqSelfie?prep.selfie||null:null,via:"quiz"};
+    const ans={}; for(const i in qPicks) ans[i]={c:qPicks[i].c,at:qPicks[i].at}; if(Object.keys(ans).length) d.ans=ans;   // vào lại phòng (sửa mã phòng) vẫn giữ các câu đã bấm
+    msg("warn","Đang vào phòng…");
+    await Store.set("checkins/"+session.id+"/"+k,d);
+    qJoin={pin,at:now}; quizSave(); done[session.id]=k; ls.set("dd-done",JSON.stringify(done)); $("pinIn").value=""; msg("",null);
+    watchLobby(); watchResult("quiz"); $("btnQuizOpen").hidden=false; quizOpen();
+  }catch(e){ msg("bad","Không vào được phòng, kiểm tra kết nối mạng rồi thử lại."); }
+  finally{ $("btnJoin").disabled=false; }
+}
+$("btnJoin").addEventListener("click",joinRoom);
+$("pinIn").addEventListener("input",()=>{ $("pinIn").value=$("pinIn").value.replace(/\D/g,"").slice(0,4); });
+$("pinIn").addEventListener("keydown",e=>{ if(e.key==="Enter") joinRoom(); });
+$("btnQuizOpen").addEventListener("click",()=>quizOpen());
+$("btnQuizX").addEventListener("click",()=>quizClose());
+function quizOpen(){ if(!qJoin||quizDone) return; quizOn=true; $("quizFull").hidden=false; document.body.classList.add("noscroll"); Store.pollMs=2500; clearInterval(quizTimer); quizTimer=setInterval(quizTick,150); qLastI=null; quizTick(); }
+function quizClose(){ if(!quizOn) return; quizOn=false; clearInterval(quizTimer); $("quizFull").hidden=true; document.body.classList.remove("noscroll"); Store.pollMs=4000; }
+const qOrder = i => [0,1,2,3].sort((a,b)=>cyrb53(deviceId+":"+session.id+":"+i+":"+a)-cyrb53(deviceId+":"+session.id+":"+i+":"+b));   // thứ tự nút khác nhau trên mỗi điện thoại, mỗi câu
+function qCellState(i,now){ const s=session, p=qPicks[i], rv=s.rev?.[i];
+  if(p) return rv!=null?(p.c===rv?"ok":"bad"):"pick";
+  return s.phase==="run" && now>quizStart(s,i)+quizMs(s) ? "bad" : ""; }
+function qWait(big,txt,sec){ $("qWait").hidden=false; $("qBtns").hidden=true; $("qWaitBig").textContent=big; $("qWaitTxt").textContent=txt; $("qSec").hidden=sec==null; if(sec!=null) $("qSec").textContent=sec; }
+function quizTick(){
+  const s=session; if(!s||!s.open||!isQuiz(s)){ quizClose(); return; }
+  const now=Store.now(), ms=quizMs(s), last=quizLast(s), off=s.seqOff||0, N=last-off+1, run=s.phase==="run";
+  // dãy ô của lượt này
+  const box=$("qCells"); let html="", okRun=0, pair=false;
+  for(let i=off;i<=last;i++){ const st=run?qCellState(i,now):""; okRun=st==="ok"?okRun+1:0; if(okRun>=2) pair=true; html+='<span class="cell'+(st?" "+st:"")+'">'+(i-off+1)+'</span>'; }
+  if(box.dataset.h!==html){ box.dataset.h=html; box.innerHTML=html; }
+  if(pair && qShown!==s.id+":"+off){ qShown=s.id+":"+off; showResult("wait","Đúng 2 câu liên tiếp!","Đang chờ giảng viên xác nhận điểm danh…"); }
+  if(!qAck || qAck.at!==qJoin?.at){ $("qNo").textContent="Phòng chờ"; $("qMsg").textContent=""; qWait("…","Đang vào phòng, chờ máy giảng viên nhận…"); return; }
+  if(!run){ $("qNo").textContent="Phòng chờ"; $("qMsg").textContent="Đã vào phòng ✓"; qWait("✓","Nhìn lên máy chiếu. Chờ giảng viên hỏi \"Sẵn sàng chưa?\" và bấm bắt đầu."); return; }
+  if(now<s.t0){ $("qNo").textContent="Chuẩn bị"; $("qMsg").textContent="Nhìn máy chiếu, bấm đúng hình của ô MÀU XANH"; qWait(String(Math.max(1,Math.ceil((s.t0-now)/1000))),N+" câu, mỗi câu "+ms/1000+" giây. Đúng 2 câu liên tiếp là xong."); return; }
+  const i=quizAt(s,now);
+  if(i>last){ $("qNo").textContent="Hết câu hỏi"; $("qMsg").textContent=""; qWait(pair?"✓":"…",pair?"Đang chờ giảng viên xác nhận…":"Đang chờ đáp án và kết quả từ giảng viên…"); return; }
+  const left=quizStart(s,i)+ms-now, sec=Math.max(0,Math.ceil(left/1000));
+  $("qNo").textContent="Câu "+(i-off+1)+" / "+N; $("qSec").hidden=false; $("qSec").textContent=sec; $("qSec").classList.toggle("low",sec<=2);
+  $("qWait").hidden=true; $("qBtns").hidden=false;
+  const p=qPicks[i];
+  if(qLastI!==i){ qLastI=i; const b=$("qBtns"); b.innerHTML="";
+    qOrder(i).forEach(c=>{ const x=document.createElement("button"); x.type="button"; x.className="qbtn"; x.dataset.c=c; x.textContent=QUIZ_SHAPES[c].s; x.setAttribute("aria-label",QUIZ_SHAPES[c].n); x.addEventListener("pointerdown",e=>{ e.preventDefault(); quizPick(i,c); }); x.addEventListener("click",()=>quizPick(i,c)); b.appendChild(x); }); }
+  $("qBtns").querySelectorAll(".qbtn").forEach(x=>{ x.disabled=!!p&&+x.dataset.c!==p.c; x.classList.toggle("pick",!!p&&+x.dataset.c===p.c); });
+  $("qMsg").textContent=p?"Đã chọn "+QUIZ_SHAPES[p.c].s+". Chờ câu tiếp theo…":"Bấm đúng hình của ô MÀU XANH trên máy chiếu";
+}
+function quizPick(i,c){ const s=session; if(!s||qPicks[i]) return; const now=Store.now(); if(quizAt(s,now)!==i) return;
+  qPicks[i]={c,at:now}; quizSave(); quizTick(); if(navigator.vibrate) try{ navigator.vibrate(30); }catch(e){}
+  Store.set("checkins/"+s.id+"/"+K()+"/ans/"+i,{c,at:now}).catch(()=>{ $("qMsg").textContent="Mạng chập chờn, câu này có thể không được tính."; }); }
 
 </script>
 </body>
