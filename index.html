@@ -467,7 +467,7 @@ body[data-tab="home"] .pagehead{display:none}
 /* ===================== CẤU HÌNH (giống nhau ở cả 2 file) =====================
    SHEET_URL: địa chỉ ứng dụng web Apps Script (kết thúc bằng /exec) để mọi máy dùng chung dữ liệu.
    Giảng viên có thể đổi địa chỉ trong Cài đặt; sinh viên nhận địa chỉ mới qua link giảng viên gửi (#u=…). */
-const SHEET_URL_BUILT = "https://script.google.com/macros/s/AKfycbzOLdroPgqX1sqaNq51lWA9xrRxjA3tzfHGlXIRJH8JASH-Wps-7Trqh_PVwuU6St73Cg/exec";
+const SHEET_URL_BUILT = "https://script.google.com/macros/s/AKfycbxZtZucyz4x_VCvEeC90bWI5B2o2-KbfffusQuK54SwIQ0UgKN8jjKE3guo3pcsUBGUDA/exec";
 const APP_VER = "Bản 28/10 nền tím · dùng chung";
 const SHEET_URL = (()=>{ try{ const m=location.hash.match(/[#&]u=([^&]+)/); if(m){ const u=decodeURIComponent(m[1]); if(/^https:\/\/script\.google\.com\/.+\/exec$/.test(u)) localStorage.setItem("dd-sheet-url",u); history.replaceState(null,"",location.pathname+location.search); } return localStorage.getItem("dd-sheet-url")||SHEET_URL_BUILT; }catch(e){ return SHEET_URL_BUILT; } })();
 const WINDOW_MS = 5000;          // mã đổi sau mỗi 5 giây
