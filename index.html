@@ -593,6 +593,10 @@ body.noscroll{overflow:hidden}
 .quizfull .seqlegend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px;background:rgba(255,255,255,.3)}
 .quizfull .seqlegend i.ok{background:#1fa84f}.quizfull .seqlegend i.bad{background:#c7322a}.quizfull .seqlegend i.pick{background:#f6c453}
 
+.svwarn{display:flex;flex-direction:column;gap:4px;background:#fde8e6;color:#8a1c14;border:2px solid #d4342b;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:.92rem}
+.svwarn b{font-size:1rem}
+.switchbar{display:flex;flex-direction:column;gap:8px;background:var(--warn-soft);border:1px solid var(--warn);border-radius:12px;padding:12px}
+
 </style>
 </head>
 <body>
@@ -10798,7 +10802,7 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
    để máy giảng viên và điện thoại sinh viên dùng chung dữ liệu. Xem file HUONG-DAN-GOOGLE-SHEET.
    Để trống: chế độ thử, dữ liệu chỉ nằm trong trình duyệt của máy này. */
 const SHEET_URL = "https://script.google.com/macros/s/AKfycbzOLdroPgqX1sqaNq51lWA9xrRxjA3tzfHGlXIRJH8JASH-Wps-7Trqh_PVwuU6St73Cg/exec";
-const APP_VER = "Bản 28/10-4 · câu hỏi";   // hiện trên đầu trang để biết đang mở đúng file mới
+const APP_VER = "Bản 28/10-5 · câu hỏi";   // hiện trên đầu trang để biết đang mở đúng file mới
 const WINDOW_MS = 5000;          // mã đổi sau mỗi 5 giây
 
 const $ = id => document.getElementById(id);
@@ -10842,7 +10846,7 @@ const Store = {
   async init(){
     if(SHEET_URL){
       this.sheet=SHEET_URL;
-      try{ const r=await this._call({op:"get",paths:[],since:[]}); if(r.error) throw r; if(!Array.isArray(r.res)){ this.err="old"; return "error"; } this.live=true; this._poll();
+      try{ const r=await this._call({op:"get",paths:[],since:[]}); if(r.error) throw r; if(!Array.isArray(r.res)){ this.err="old"; return "error"; } this.live=true; this.sv=+r.sv||0; this._poll();
         addEventListener("beforeunload",e=>{ if(this.queue.length||this.flushing){ e.preventDefault(); e.returnValue=""; } });   // còn dữ liệu chưa lưu lên Sheet
         return "live"; }
       catch(e){ return "error"; }
@@ -10905,7 +10909,13 @@ const Store = {
     this.bc?.postMessage(1); this._emit();
   },
   async get(path){ if(this.live){ await this._flush(); const r=await this._call({op:"get",paths:[path],since:[null]}); return this._asm(r.res[0].rows,path); } return this._get(this._tree(),path); },
-  async getMany(paths){ if(this.live){ await this._flush(); const r=await this._call({op:"get",paths,since:paths.map(()=>null)}); return paths.map((p,i)=>this._asm(r.res[i].rows,p)); } return paths.map(p=>this._get(this._tree(),p)); }
+  sv:99, SV_NEED:5,
+  get oldServer(){ return this.live && this.sv<this.SV_NEED; },
+  /* Apps Script bản cũ có thể để một khoá nằm ở 2 dòng (dòng cũ sót lại): xoá đến khi đọc ra trống rồi mới ghi giá trị đúng */
+  async purge(path){ for(let i=0;i<6;i++){ await this.set(path,null); if(await this.get(path)==null) return true; } return false; },
+  rwAt:0, async rewrite(path,val){ this.rwAt=Date.now(); await this.purge(path); await this.set(path,val); this.rwAt=Date.now(); },
+  async getMany(paths){ if(this.oldServer){ const out=[]; for(const p of paths) out.push(await this.get(p)); return out; }   // bản cũ: đọc từng khoá cho chắc
+ if(this.live){ await this._flush(); const r=await this._call({op:"get",paths,since:paths.map(()=>null)}); return paths.map((p,i)=>this._asm(r.res[i].rows,p)); } return paths.map(p=>this._get(this._tree(),p)); }
 };
 
 /* ---------- điểm danh kiểu câu hỏi (máy chiếu hiện đáp án xanh, điện thoại bấm đúng hình) ---------- */
@@ -11157,11 +11167,12 @@ async function login(){
     if(!acc){ lgMsg("bad","MSSV này chưa được giảng viên cấp tài khoản."+DEMO_NOTE()); return; }
     if(await hashPass(k,pw)!==acc.passHash){ lgMsg("bad","Sai mật khẩu. Quên mật khẩu thì liên hệ giảng viên để cấp lại."+DEMO_NOTE()); return; }
     // dấu khoá cũ: tài khoản kia đã bị gỡ máy / chuyển máy / xoá thì giải phóng điện thoại này
-    if(owner && owner!==k && (await Store.get("accounts/"+owner+"/deviceId"))!==deviceId){ await Store.set("deviceOwners/"+deviceId,null); owner=null; }
+    if(owner && owner!==k && (await Store.get("accounts/"+owner+"/deviceId"))!==deviceId){ await Store.purge("deviceOwners/"+deviceId); owner=null; }
     if(owner && owner!==k){ const om=await Store.get("accounts/"+owner+"/mssv")||owner; lgMsg("bad","Điện thoại này đang khoá với tài khoản MSSV "+om+". Mỗi điện thoại chỉ dùng cho một tài khoản. Muốn dùng máy này cho MSSV "+mssv+", nhờ giảng viên bấm \"Gỡ điện thoại\" ở tài khoản "+om+"."); return; }
     if(!acc.deviceId){
       const now=Date.now(); justBound=now;
-      await Promise.all([Store.set("accounts/"+k+"/deviceId",deviceId),Store.set("accounts/"+k+"/fp",FP),Store.set("accounts/"+k+"/ua",shortUA()),Store.set("accounts/"+k+"/boundAt",now),Store.set("deviceOwners/"+deviceId,k)]);
+      if(Store.oldServer){ await Store.rewrite("accounts/"+k,{...acc,deviceId,fp:FP,ua:shortUA(),boundAt:now}); await Store.rewrite("deviceOwners/"+deviceId,k); }
+      else await Promise.all([Store.set("accounts/"+k+"/deviceId",deviceId),Store.set("accounts/"+k+"/fp",FP),Store.set("accounts/"+k+"/ua",shortUA()),Store.set("accounts/"+k+"/boundAt",now),Store.set("deviceOwners/"+deviceId,k)]);
       acc={...acc,deviceId,fp:FP,ua:shortUA(),boundAt:now};
     } else if(acc.deviceId!==deviceId){
       pendingReq={k,mssv}; $("btnRequest").hidden=false;
@@ -11183,7 +11194,8 @@ function enter(k,seed){
   unAcct?.();
   const onAcct=a=>{
     if(ls.get("dd-login")!==k && me) return;
-    if(a && !a.deviceId && Date.now()-justBound<20000) return;   // vừa khoá máy xong mà Sheet chưa kịp cập nhật: chờ lần đọc sau, không đá ra ngoài
+    if(a && !a.deviceId && Date.now()-justBound<20000) return;
+    if(!a && Date.now()-Store.rwAt<20000) return;   // đang sửa dòng trùng trên Sheet: tài khoản trống thoáng qua   // vừa khoá máy xong mà Sheet chưa kịp cập nhật: chờ lần đọc sau, không đá ra ngoài
     if(!a){ logout("Tài khoản không còn tồn tại, liên hệ giảng viên."); return; }
     if(a.deviceId!==deviceId){ logout(a.deviceId?"Tài khoản đã được chuyển sang điện thoại khác.":"Giảng viên đã gỡ điện thoại này khỏi tài khoản. Đăng nhập lại để khoá vào máy đang dùng."); return; }
     const first=!me; me={k,mssv:a.mssv,name:a.name}; acct=a; $("loginBox").hidden=true; $("state").hidden=false; checkWho(); if(first){ $("app").hidden=false; idleCheck(); } renderHello(); applyPwRule();
@@ -11217,6 +11229,7 @@ $("btnPwSave").addEventListener("click",async()=>{
     const cur=await Store.get("accounts/"+k+"/passHash");
     if(await hashPass(k,o)!==cur){ pwMsg("bad","Mật khẩu hiện tại không đúng."); return; }
     const h=await hashPass(k,n);   // gửi cả 4 thay đổi trong một lần ghi
+    if(Store.oldServer){ const cur=await Store.get("accounts/"+k)||acct; await Store.rewrite("accounts/"+k,{...cur,passHash:h,passBy:"student",passChangedAt:Date.now(),mustChange:false}); } else
     await Promise.all([Store.set("accounts/"+k+"/passHash",h),Store.set("accounts/"+k+"/passBy","student"),Store.set("accounts/"+k+"/passChangedAt",Date.now()),Store.set("accounts/"+k+"/mustChange",false)]);
     if(acct) Object.assign(acct,{passHash:h,passBy:"student",passChangedAt:Date.now(),mustChange:false});
     closePw(); msg("ok","Đã đổi mật khẩu. Lần đăng nhập sau dùng mật khẩu mới.");
