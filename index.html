@@ -10798,7 +10798,7 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
    để máy giảng viên và điện thoại sinh viên dùng chung dữ liệu. Xem file HUONG-DAN-GOOGLE-SHEET.
    Để trống: chế độ thử, dữ liệu chỉ nằm trong trình duyệt của máy này. */
 const SHEET_URL = "https://script.google.com/macros/s/AKfycbzOLdroPgqX1sqaNq51lWA9xrRxjA3tzfHGlXIRJH8JASH-Wps-7Trqh_PVwuU6St73Cg/exec";
-const APP_VER = "Bản 28/10-2 · câu hỏi";   // hiện trên đầu trang để biết đang mở đúng file mới
+const APP_VER = "Bản 28/10-3 · câu hỏi";   // hiện trên đầu trang để biết đang mở đúng file mới
 const WINDOW_MS = 5000;          // mã đổi sau mỗi 5 giây
 
 const $ = id => document.getElementById(id);
@@ -10874,11 +10874,12 @@ const Store = {
   async _poll(){ for(;;){ await new Promise(r=>setTimeout(r,document.hidden?this.pollMs*3:this.pollMs)); try{ await this._refresh(); }catch(e){} } },
   wseq:0,
   async _refresh(){ if(this.queue.length||this.flushing) return; const subs=this.subs.filter(s=>s.ready); if(!subs.length) return; const w0=this.wseq;
-    const r=await this._call({op:"get",paths:subs.map(s=>s.path),since:subs.map(s=>s.since),ifVer:subs.every(s=>s.since!=null)?this.ver:null});
+    const r=await this._call({op:"get",paths:subs.map(s=>s.path),since:subs.map(s=>s.since),ifVer:subs.every(s=>s.since!=null&&s.since===s.pv)?this.ver:null});
     if(r.same||this.queue.length||this.flushing||this.wseq!==w0) return; this.ver=r.ver;   /* có lệnh ghi chen giữa lúc đang hỏi: bỏ kết quả cũ, lần sau hỏi lại */ subs.forEach((s,i)=>{ this._merge(s,r.res[i],r.ver); this._fire(s); }); },
   /* ghép kết quả từ Sheet: keys = mọi dòng của nhánh, rows = các dòng mới đổi */
   _merge(s,res,ver){ if(!s.rows) s.rows={}; const keep={}; res.keys.forEach(k=>{ keep[k]=1; }); for(const k in s.rows) if(!keep[k]) delete s.rows[k];
-    for(const k in res.rows) if(res.rows[k]!==undefined&&!(res.rows[k]===null&&s.rows[k]!=null)) s.rows[k]=res.rows[k]; /* dòng đọc hụt thì giữ giá trị cũ */ s.since=ver; s.val=this._asm(s.rows,s.path); },
+    for(const k in res.rows) if(res.rows[k]!==undefined&&!(res.rows[k]===null&&s.rows[k]!=null)) s.rows[k]=res.rows[k]; /* dòng đọc hụt thì giữ giá trị cũ */
+    s.since=s.pv??null; s.pv=ver;   /* hỏi lùi một phiên bản: dòng vừa ghi sát lúc tăng phiên bản vẫn được lấy lại, không bị kẹt dữ liệu cũ */ s.val=this._asm(s.rows,s.path); },
   _asm(rows,path){ const ps=ddSegs(path); let tree=null;
     for(const k in rows){ const ks=ddSegs(k); if(ks.length<ps.length) { tree=ddSetIn(tree,ks,rows[k]); continue; } if(!tree||typeof tree!=="object") tree={}; let o=tree; for(let i=0;i<ks.length-1;i++){ if(!o[ks[i]]||typeof o[ks[i]]!=="object") o[ks[i]]={}; o=o[ks[i]]; } o[ks.at(-1)]=rows[k]; }
     return ddClone(ddGetIn(tree,ps)); },
@@ -10902,7 +10903,8 @@ const Store = {
     try{ localStorage.setItem("dd-db",JSON.stringify(t)); }catch(e){ throw {code:"quota",message:"Bộ nhớ trình duyệt đầy"}; }
     this.bc?.postMessage(1); this._emit();
   },
-  async get(path){ if(this.live){ await this._flush(); const r=await this._call({op:"get",paths:[path],since:[null]}); return this._asm(r.res[0].rows,path); } return this._get(this._tree(),path); }
+  async get(path){ if(this.live){ await this._flush(); const r=await this._call({op:"get",paths:[path],since:[null]}); return this._asm(r.res[0].rows,path); } return this._get(this._tree(),path); },
+  async getMany(paths){ if(this.live){ await this._flush(); const r=await this._call({op:"get",paths,since:paths.map(()=>null)}); return paths.map((p,i)=>this._asm(r.res[i].rows,p)); } return paths.map(p=>this._get(this._tree(),p)); }
 };
 
 /* ---------- điểm danh kiểu câu hỏi (máy chiếu hiện đáp án xanh, điện thoại bấm đúng hình) ---------- */
@@ -11150,23 +11152,23 @@ async function login(){
   if(!mssv||!pw){ lgMsg("warn","Nhập MSSV và mật khẩu."); return; }
   $("btnLogin").disabled=true; lgMsg("warn","Đang kiểm tra…");
   try{
-    const acc=await Store.get("accounts/"+k);
+    let [acc,owner]=await Store.getMany(["accounts/"+k,"deviceOwners/"+deviceId]);   // một lần hỏi Sheet cho nhanh
     if(!acc){ lgMsg("bad","MSSV này chưa được giảng viên cấp tài khoản."+DEMO_NOTE()); return; }
     if(await hashPass(k,pw)!==acc.passHash){ lgMsg("bad","Sai mật khẩu. Quên mật khẩu thì liên hệ giảng viên để cấp lại."+DEMO_NOTE()); return; }
-    let owner=await Store.get("deviceOwners/"+deviceId);
     // dấu khoá cũ: tài khoản kia đã bị gỡ máy / chuyển máy / xoá thì giải phóng điện thoại này
     if(owner && owner!==k && (await Store.get("accounts/"+owner+"/deviceId"))!==deviceId){ await Store.set("deviceOwners/"+deviceId,null); owner=null; }
     if(owner && owner!==k){ const om=await Store.get("accounts/"+owner+"/mssv")||owner; lgMsg("bad","Điện thoại này đang khoá với tài khoản MSSV "+om+". Mỗi điện thoại chỉ dùng cho một tài khoản. Muốn dùng máy này cho MSSV "+mssv+", nhờ giảng viên bấm \"Gỡ điện thoại\" ở tài khoản "+om+"."); return; }
     if(!acc.deviceId){
-      await Promise.all([Store.set("accounts/"+k+"/deviceId",deviceId),Store.set("accounts/"+k+"/fp",FP),Store.set("accounts/"+k+"/ua",shortUA()),Store.set("accounts/"+k+"/boundAt",Date.now())]);
-      await Store.set("deviceOwners/"+deviceId,k);
+      const now=Date.now(); justBound=now;
+      await Promise.all([Store.set("accounts/"+k+"/deviceId",deviceId),Store.set("accounts/"+k+"/fp",FP),Store.set("accounts/"+k+"/ua",shortUA()),Store.set("accounts/"+k+"/boundAt",now),Store.set("deviceOwners/"+deviceId,k)]);
+      acc={...acc,deviceId,fp:FP,ua:shortUA(),boundAt:now};
     } else if(acc.deviceId!==deviceId){
       pendingReq={k,mssv}; $("btnRequest").hidden=false;
       const req=await Store.get("requests/"+k);
       lgMsg("bad","Tài khoản này đã khoá vào một điện thoại khác"+(acc.boundAt?" từ ngày "+new Date(acc.boundAt).toLocaleDateString("vi-VN"):"")+". "+(req&&req.deviceId===deviceId?"Bạn đã gửi yêu cầu đổi máy, đang chờ giảng viên duyệt.":"Nếu đã đổi hoặc mất máy, gửi yêu cầu và báo giảng viên duyệt.")+DEMO_NOTE());
       return;
     }
-    ls.set("dd-login",k); ls.set("dd-active",String(Date.now())); $("lgPass").value=""; lgMsg("",null); enter(k);
+    ls.set("dd-login",k); ls.set("dd-active",String(Date.now())); $("lgPass").value=""; lgMsg("",null); enter(k,acc);
   } catch(e){ lgMsg("bad","Không kết nối được, thử lại sau."); }
   finally{ $("btnLogin").disabled=false; }
 }
@@ -11175,15 +11177,19 @@ $("lgPass").addEventListener("keydown",e=>{ if(e.key==="Enter") login(); });
 $("btnRequest").addEventListener("click",async()=>{ if(!pendingReq) return; await Store.set("requests/"+pendingReq.k,{deviceId,fp:FP,ua:shortUA(),at:Date.now()}); $("btnRequest").hidden=true; lgMsg("warn","Đã gửi yêu cầu. Báo giảng viên duyệt, sau đó đăng nhập lại trên điện thoại này."); });
 $("btnLogout").addEventListener("click",()=>logout(""));
 function logout(reason){ ls.del("dd-login"); me=null; acct=null; $("pwBox").hidden=true; $("app").hidden=true; unAcct?.(); unAcct=null; unResult?.(); unSession?.(); unSession=null; $("form").hidden=true; $("state").hidden=true; $("loginBox").hidden=false; lgMsg(reason?"bad":"",reason||null); }
-function enter(k){
+let justBound=0;
+function enter(k,seed){
   unAcct?.();
-  unAcct=Store.watch("accounts/"+k,a=>{
+  const onAcct=a=>{
     if(ls.get("dd-login")!==k && me) return;
+    if(a && !a.deviceId && Date.now()-justBound<20000) return;   // vừa khoá máy xong mà Sheet chưa kịp cập nhật: chờ lần đọc sau, không đá ra ngoài
     if(!a){ logout("Tài khoản không còn tồn tại, liên hệ giảng viên."); return; }
     if(a.deviceId!==deviceId){ logout(a.deviceId?"Tài khoản đã được chuyển sang điện thoại khác.":"Giảng viên đã gỡ điện thoại này khỏi tài khoản. Đăng nhập lại để khoá vào máy đang dùng."); return; }
     const first=!me; me={k,mssv:a.mssv,name:a.name}; acct=a; $("loginBox").hidden=true; $("state").hidden=false; checkWho(); if(first){ $("app").hidden=false; idleCheck(); } renderHello(); applyPwRule();
     if(first) startSession();
-  });
+  };
+  if(seed) onAcct(seed);   // vào trang ngay bằng dữ liệu vừa đăng nhập, không chờ thêm một lượt hỏi Sheet
+  unAcct=Store.watch("accounts/"+k,onAcct);
 }
 
 /* ---------- đổi mật khẩu ---------- */
@@ -11320,7 +11326,7 @@ function quizTick(){
   for(let i=off;i<=last;i++){ const st=run?qCellState(i,now):""; okRun=st==="ok"?okRun+1:0; if(okRun>=2) pair=true; html+='<span class="cell'+(st?" "+st:"")+'">'+(i-off+1)+'</span>'; }
   if(box.dataset.h!==html){ box.dataset.h=html; box.innerHTML=html; }
   if(pair && qShown!==s.id+":"+off){ qShown=s.id+":"+off; showResult("wait","Đúng 2 câu liên tiếp!","Đang chờ giảng viên xác nhận điểm danh…"); }
-  if(!qAck || qAck.at!==qJoin?.at){ $("qNo").textContent="Phòng chờ"; $("qMsg").textContent=""; qWait("…","Đang vào phòng, chờ máy giảng viên nhận…"); return; }
+  if(!qAck || qAck.at!==qJoin?.at){ $("qNo").textContent="Phòng chờ"; $("qMsg").textContent=""; qWait("…",qJoin&&Store.now()-qJoin.at>20000?"Máy giảng viên chưa nhận bạn vào phòng. Kiểm tra lại mã phòng trên máy chiếu: bấm Thu nhỏ, nhập lại mã rồi bấm Vào phòng.":"Đang vào phòng, chờ máy giảng viên nhận…"); return; }
   if(!run){ $("qNo").textContent="Phòng chờ"; $("qMsg").textContent="Đã vào phòng ✓"; qWait("✓","Nhìn lên máy chiếu. Chờ giảng viên hỏi \"Sẵn sàng chưa?\" và bấm bắt đầu."); return; }
   if(now<s.t0){ $("qNo").textContent="Chuẩn bị"; $("qMsg").textContent="Nhìn máy chiếu, bấm đúng hình của ô MÀU XANH"; qWait(String(Math.max(1,Math.ceil((s.t0-now)/1000))),N+" câu, mỗi câu "+ms/1000+" giây. Đúng 2 câu liên tiếp là xong."); return; }
   const i=quizAt(s,now);
