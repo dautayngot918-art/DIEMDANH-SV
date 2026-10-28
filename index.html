@@ -10798,7 +10798,7 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
    để máy giảng viên và điện thoại sinh viên dùng chung dữ liệu. Xem file HUONG-DAN-GOOGLE-SHEET.
    Để trống: chế độ thử, dữ liệu chỉ nằm trong trình duyệt của máy này. */
 const SHEET_URL = "https://script.google.com/macros/s/AKfycbzOLdroPgqX1sqaNq51lWA9xrRxjA3tzfHGlXIRJH8JASH-Wps-7Trqh_PVwuU6St73Cg/exec";
-const APP_VER = "Bản 28/10 · câu hỏi";   // hiện trên đầu trang để biết đang mở đúng file mới
+const APP_VER = "Bản 28/10-2 · câu hỏi";   // hiện trên đầu trang để biết đang mở đúng file mới
 const WINDOW_MS = 5000;          // mã đổi sau mỗi 5 giây
 
 const $ = id => document.getElementById(id);
@@ -10857,8 +10857,9 @@ const Store = {
     return j; },
   off:0, rtt:1e9, now(){ return Date.now()+this.off; },
   /* ghi: gom các lệnh ghi gần nhau thành một lần gửi; màn hình cập nhật ngay, không chờ mạng */
-  _local(path,val){ const ps=ddSegs(path), p=ps.join("/");
-    this.subs.forEach(s=>{ const ws=ddSegs(s.path), w=ws.join("/");
+  _local(path,val){ const ps=ddSegs(path), p=ps.join("/"); this.wseq++;
+    this.subs.forEach(s=>{ if(!s.ready) return;   // nhánh chưa tải xong từ Sheet: không báo dữ liệu dở dang (tránh tưởng tài khoản bị mất rồi tạo lại)
+      const ws=ddSegs(s.path), w=ws.join("/");
       if(p===w||w===""||p.startsWith(w+"/")) s.val=ddSetIn(s.val,ps.slice(ws.length),val);
       else if(p===""||w.startsWith(p+"/")) s.val=ddClone(ddGetIn(val,ws.slice(ps.length)));
       else return; this._fire(s); }); },
@@ -10871,9 +10872,10 @@ const Store = {
       q.forEach(x=>err?x.rej({code:"net",message:"Không lưu được lên Google Sheet"}):x.res()); })().finally(()=>{ this.flushing=null; });
     return this.flushing; },
   async _poll(){ for(;;){ await new Promise(r=>setTimeout(r,document.hidden?this.pollMs*3:this.pollMs)); try{ await this._refresh(); }catch(e){} } },
-  async _refresh(){ if(this.queue.length||this.flushing) return; const subs=this.subs.filter(s=>s.ready); if(!subs.length) return;
+  wseq:0,
+  async _refresh(){ if(this.queue.length||this.flushing) return; const subs=this.subs.filter(s=>s.ready); if(!subs.length) return; const w0=this.wseq;
     const r=await this._call({op:"get",paths:subs.map(s=>s.path),since:subs.map(s=>s.since),ifVer:subs.every(s=>s.since!=null)?this.ver:null});
-    if(r.same||this.queue.length||this.flushing) return; this.ver=r.ver; subs.forEach((s,i)=>{ this._merge(s,r.res[i],r.ver); this._fire(s); }); },
+    if(r.same||this.queue.length||this.flushing||this.wseq!==w0) return; this.ver=r.ver;   /* có lệnh ghi chen giữa lúc đang hỏi: bỏ kết quả cũ, lần sau hỏi lại */ subs.forEach((s,i)=>{ this._merge(s,r.res[i],r.ver); this._fire(s); }); },
   /* ghép kết quả từ Sheet: keys = mọi dòng của nhánh, rows = các dòng mới đổi */
   _merge(s,res,ver){ if(!s.rows) s.rows={}; const keep={}; res.keys.forEach(k=>{ keep[k]=1; }); for(const k in s.rows) if(!keep[k]) delete s.rows[k];
     for(const k in res.rows) if(res.rows[k]!==undefined&&!(res.rows[k]===null&&s.rows[k]!=null)) s.rows[k]=res.rows[k]; /* dòng đọc hụt thì giữ giá trị cũ */ s.since=ver; s.val=this._asm(s.rows,s.path); },
@@ -10886,8 +10888,8 @@ const Store = {
   watch(path, cb){
     if(this.live){ const s={path,cb,last:undefined,val:null,rows:null,since:null,ready:false}; this.subs.push(s);
       (async()=>{ for(let i=0;i<20&&this.subs.includes(s);i++){   // lấy lần đầu; nếu đang có lệnh ghi chờ gửi thì gửi xong rồi lấy lại
-          try{ await this._flush(); const r=await this._call({op:"get",paths:[path],since:[null]}); if(!this.subs.includes(s)) return;
-            if(!this.queue.length&&!this.flushing){ this._merge(s,r.res[0],r.ver); s.ready=true; this._fire(s); return; } }
+          try{ await this._flush(); const w0=this.wseq; const r=await this._call({op:"get",paths:[path],since:[null]}); if(!this.subs.includes(s)) return;
+            if(!this.queue.length&&!this.flushing&&this.wseq===w0){ this._merge(s,r.res[0],r.ver); s.ready=true; this._fire(s); return; } }
           catch(e){ await new Promise(r=>setTimeout(r,1500)); } }
         s.ready=true; })();
       return ()=>{ this.subs=this.subs.filter(x=>x!==s); }; }
@@ -11156,7 +11158,7 @@ async function login(){
     if(owner && owner!==k && (await Store.get("accounts/"+owner+"/deviceId"))!==deviceId){ await Store.set("deviceOwners/"+deviceId,null); owner=null; }
     if(owner && owner!==k){ const om=await Store.get("accounts/"+owner+"/mssv")||owner; lgMsg("bad","Điện thoại này đang khoá với tài khoản MSSV "+om+". Mỗi điện thoại chỉ dùng cho một tài khoản. Muốn dùng máy này cho MSSV "+mssv+", nhờ giảng viên bấm \"Gỡ điện thoại\" ở tài khoản "+om+"."); return; }
     if(!acc.deviceId){
-      await Store.set("accounts/"+k+"/deviceId",deviceId); await Store.set("accounts/"+k+"/fp",FP); await Store.set("accounts/"+k+"/ua",shortUA()); await Store.set("accounts/"+k+"/boundAt",Date.now());
+      await Promise.all([Store.set("accounts/"+k+"/deviceId",deviceId),Store.set("accounts/"+k+"/fp",FP),Store.set("accounts/"+k+"/ua",shortUA()),Store.set("accounts/"+k+"/boundAt",Date.now())]);
       await Store.set("deviceOwners/"+deviceId,k);
     } else if(acc.deviceId!==deviceId){
       pendingReq={k,mssv}; $("btnRequest").hidden=false;
@@ -11207,7 +11209,9 @@ $("btnPwSave").addEventListener("click",async()=>{
   try{
     const cur=await Store.get("accounts/"+k+"/passHash");
     if(await hashPass(k,o)!==cur){ pwMsg("bad","Mật khẩu hiện tại không đúng."); return; }
-    await Store.set("accounts/"+k+"/passHash",await hashPass(k,n)); await Store.set("accounts/"+k+"/passBy","student"); await Store.set("accounts/"+k+"/passChangedAt",Date.now()); await Store.set("accounts/"+k+"/mustChange",false);
+    const h=await hashPass(k,n);   // gửi cả 4 thay đổi trong một lần ghi
+    await Promise.all([Store.set("accounts/"+k+"/passHash",h),Store.set("accounts/"+k+"/passBy","student"),Store.set("accounts/"+k+"/passChangedAt",Date.now()),Store.set("accounts/"+k+"/mustChange",false)]);
+    if(acct) Object.assign(acct,{passHash:h,passBy:"student",passChangedAt:Date.now(),mustChange:false});
     closePw(); msg("ok","Đã đổi mật khẩu. Lần đăng nhập sau dùng mật khẩu mới.");
   }catch(e){ pwMsg("bad","Không lưu được, kiểm tra kết nối rồi thử lại."); }
   finally{ $("btnPwSave").disabled=false; }
