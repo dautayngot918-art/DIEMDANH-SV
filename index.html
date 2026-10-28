@@ -10798,7 +10798,7 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
    để máy giảng viên và điện thoại sinh viên dùng chung dữ liệu. Xem file HUONG-DAN-GOOGLE-SHEET.
    Để trống: chế độ thử, dữ liệu chỉ nằm trong trình duyệt của máy này. */
 const SHEET_URL = "https://script.google.com/macros/s/AKfycbzOLdroPgqX1sqaNq51lWA9xrRxjA3tzfHGlXIRJH8JASH-Wps-7Trqh_PVwuU6St73Cg/exec";
-const APP_VER = "Bản 28/10-3 · câu hỏi";   // hiện trên đầu trang để biết đang mở đúng file mới
+const APP_VER = "Bản 28/10-4 · câu hỏi";   // hiện trên đầu trang để biết đang mở đúng file mới
 const WINDOW_MS = 5000;          // mã đổi sau mỗi 5 giây
 
 const $ = id => document.getElementById(id);
@@ -10869,6 +10869,7 @@ const Store = {
     if(!this.queue.length) return Promise.resolve();
     const q=this.queue; this.queue=[];
     this.flushing=(async()=>{ let err=null; for(let i=0;i<3;i++){ try{ const r=await this._call({op:"batch",ops:q.map(x=>({p:x.p,v:x.v}))}); if(r.error) throw new Error(r.error); err=null; break; }catch(e){ err=e; await new Promise(r=>setTimeout(r,800*(i+1))); } }
+      if(err){ const m=document.getElementById("mode"); if(m){ m.textContent="⚠ Không lưu được lên Google Sheet · kiểm tra mạng hoặc Apps Script"; m.classList.remove("live"); } }   /* báo rõ, không âm thầm quay về dữ liệu cũ */
       q.forEach(x=>err?x.rej({code:"net",message:"Không lưu được lên Google Sheet"}):x.res()); })().finally(()=>{ this.flushing=null; });
     return this.flushing; },
   async _poll(){ for(;;){ await new Promise(r=>setTimeout(r,document.hidden?this.pollMs*3:this.pollMs)); try{ await this._refresh(); }catch(e){} } },
