@@ -274,6 +274,20 @@ header.top>div:first-child>.sub{grid-column:1/-1;margin:-6px 0 0}
 .reqlist li.on::before{content:"✓";background:var(--ok-soft,#dff3e6);color:var(--ok,#1e8a4c)}
 .reqlist li.off::before{content:"–";background:var(--line);color:var(--muted)}
 .reqlist li.off{color:var(--muted)}
+
+/* khung chụp ảnh v2: nút nằm trong khung đen, vừa mọi màn hình điện thoại */
+.camfull{height:100vh;height:100dvh}
+.cf-top{flex:none}
+.cf-view{flex:1;min-height:0;justify-content:center;padding:0 10px 10px}
+.cf-frame{width:min(100%,calc(100dvh - 90px),560px);max-width:100%;border-radius:18px}
+.cf-frame .cf-msg{position:absolute;top:10px;left:10px;right:10px;margin:0;background:rgba(0,0,0,.5);color:#fff;border-radius:10px;padding:7px 10px;font-size:.85rem;max-width:none;z-index:2}
+.cf-frame .cf-bar{position:absolute;left:0;right:0;bottom:0;padding:14px 12px 16px;background:linear-gradient(transparent,rgba(0,0,0,.65));z-index:3;justify-content:space-between}
+.cf-frame .cf-bar[hidden]{display:none}
+.cf-frame .cf-shutter{width:68px;height:68px}
+.cf-frame .cf-btn{flex:1 1 0;max-width:none;padding:12px 8px;font-size:.95rem;background:rgba(255,255,255,.22);backdrop-filter:blur(4px)}
+.cf-frame .cf-btn.ok{background:#2fbf71}
+.cf-frame .cf-txt{text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.cf-guide{top:44%;height:62%;width:52%}
 /* ===================== GIAO DIỆN MỚI: thanh ứng dụng, màu, khung ===================== */
 :root{
   --bg:#f5f3fa; --surface:#ffffff; --ink:#1e1832; --muted:#665f7b; --line:#e4def1;
@@ -786,7 +800,7 @@ table th{letter-spacing:.03em}
    SHEET_URL: địa chỉ ứng dụng web Apps Script (kết thúc bằng /exec) để mọi máy dùng chung dữ liệu.
    Giảng viên có thể đổi địa chỉ trong Cài đặt; sinh viên nhận địa chỉ mới qua link giảng viên gửi (#u=…). */
 const SHEET_URL_BUILT = "https://script.google.com/macros/s/AKfycbxZtZucyz4x_VCvEeC90bWI5B2o2-KbfffusQuK54SwIQ0UgKN8jjKE3guo3pcsUBGUDA/exec";
-const APP_VER = "Bản 1/11y-ảnh 15 phút · nền tím";
+const APP_VER = "Bản 1/11z-chụp ảnh trong khung · nền tím";
 const SHEET_URL = (()=>{ try{ const m=location.hash.match(/[#&]u=([^&]+)/); if(m){ const u=decodeURIComponent(m[1]); if(/^https:\/\/script\.google\.com\/.+\/exec$/.test(u)) localStorage.setItem("dd-sheet-url",u); history.replaceState(null,"",location.pathname+location.search); } return localStorage.getItem("dd-sheet-url")||SHEET_URL_BUILT; }catch(e){ return SHEET_URL_BUILT; } })();
 const WINDOW_MS = 5000;          // mã đổi sau mỗi 5 giây
 
@@ -1015,10 +1029,13 @@ function grabFrame(v){
 function camUI(){
   let w=$("camFull"); if(w) return w;
   w=document.createElement("div"); w.id="camFull"; w.className="camfull"; w.hidden=true;
+  /* nút chụp, chụp lại, lưu nằm NGAY TRONG khung đen: điện thoại nào cũng thấy, không cần thu nhỏ màn hình */
   w.innerHTML='<div class="cf-top"><button type="button" class="cf-x" data-c="x" aria-label="Đóng">✕</button><span>Ảnh khuôn mặt</span><span style="width:40px"></span></div>'+
-    '<div class="cf-view"><div class="cf-frame"><video id="cfVideo" playsinline muted autoplay></video><img id="cfShot" alt="Ảnh vừa chụp" hidden><div class="cf-guide"></div></div><p class="cf-msg" id="cfMsg">Đang mở camera…</p></div>'+
+    '<div class="cf-view"><div class="cf-frame"><video id="cfVideo" playsinline webkit-playsinline muted autoplay disablepictureinpicture></video><img id="cfShot" alt="Ảnh vừa chụp" hidden><div class="cf-guide"></div>'+
+    '<p class="cf-msg" id="cfMsg">Đang mở camera…</p>'+
     '<div class="cf-bar" id="cfShoot"><button type="button" class="cf-txt" data-c="x">Huỷ</button><button type="button" class="cf-shutter" data-c="snap" aria-label="Chụp" disabled></button><span class="cf-txt"></span></div>'+
-    '<div class="cf-bar" id="cfReview" hidden><button type="button" class="cf-btn" data-c="again">↺ Chụp lại</button><button type="button" class="cf-btn ok" data-c="use">✓ Lưu ảnh</button></div>';
+    '<div class="cf-bar" id="cfReview" hidden><button type="button" class="cf-btn" data-c="again">↺ Chụp lại</button><button type="button" class="cf-btn ok" data-c="use">✓ Lưu ảnh</button></div>'+
+    '</div></div>';
   document.body.appendChild(w);
   let shot=null;
   const view=rev=>{ $("cfShoot").hidden=rev; $("cfReview").hidden=!rev; $("cfShot").hidden=!rev; $("cfVideo").hidden=rev; };
@@ -1034,7 +1051,7 @@ function camUI(){
     stopCam();
     try{
       stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:720},height:{ideal:720}},audio:false});
-      const v=$("cfVideo"); v.srcObject=stream; await v.play().catch(()=>{});
+      const v=$("cfVideo"); v.playsInline=true; v.setAttribute("playsinline",""); v.srcObject=stream; await v.play().catch(()=>{});
       /* chờ camera ra hình thật rồi mới cho chụp, tránh ảnh đen */
       const t0=Date.now(); while(stream && (!v.videoWidth||v.readyState<2) && Date.now()-t0<8000) await new Promise(r=>setTimeout(r,150));
       if(!stream||w.hidden) return;
@@ -1115,7 +1132,8 @@ async function startScan(){
 $("btnScan").addEventListener("click",startScan);
 function applyScanMode(){ $("liveScan").hidden=false; $("codeIn").hidden=true; $("btnSend").hidden=true; }   /* máy chiếu không hiện số: chỉ quét QR */
 
-function setState(level,title,text){ const s=$("state"); s.className="bigstate "+level; s.innerHTML=""; const b=document.createElement("b"); b.textContent=title; const t=document.createElement("span"); t.textContent=text; s.append(b,t); }
+function setState(level,title,text,btn){ const s=$("state"); s.className="bigstate "+level; s.innerHTML=""; const b=document.createElement("b"); b.textContent=title; const t=document.createElement("span"); t.textContent=text; s.append(b,t);
+  if(btn){ const x=document.createElement("button"); x.type="button"; x.className="btn primary"; x.style.marginTop="10px"; x.textContent=btn.label; x.addEventListener("click",btn.fn); s.appendChild(x); } }
 function watchResult(justSent){
   unResult?.(); const k=K(), name=session.roster?.[k]?.name||"";
   if(justSent) setState("wait","Đã gửi, đang chờ xác nhận","Giảng viên đang chấm lượt của "+name+".");
@@ -1299,10 +1317,11 @@ function startSession(){
   unSession=Store.watch("session",async v=>{
     if(!me) return; const s=pickSess(v);
     const changed=!session||!s||s.id!==session.id; session=s; if(!myCls.length) renderHello(); if(changed&&me) loadClasses();
-    if(!s||!s.open){ stopScan(); $("stClass").textContent=s?clsName(s.className,s.subject):"Chưa có buổi học"; setState("wait",s?"Điểm danh đã đóng":"Đang chờ giảng viên",s?"Liên hệ giảng viên nếu bạn chưa kịp điểm danh.":"Giảng viên chưa mở điểm danh. Trang tự cập nhật khi buổi học bắt đầu."); $("form").hidden=!!s; return; }
+    if(s&&!s.open&&s.id===resetFor){ resetView(true,true); return; }
+    if(!s||!s.open){ stopScan(); $("stClass").textContent=s?clsName(s.className,s.subject):"Chưa có buổi học"; setState("wait",s?"Điểm danh đã đóng":"Đang chờ giảng viên",s?"Liên hệ giảng viên nếu bạn chưa kịp điểm danh.":"Giảng viên chưa mở điểm danh. Trang tự cập nhật khi buổi học bắt đầu.",s?{label:"↺ Về trang điểm danh ban đầu",fn:()=>{ resetFor=session&&session.id; resetView(); }}:null); $("form").hidden=!!s; if(!s) resetView(true); return; }
     $("stClass").textContent=[clsName(s.className,s.subject),s.kind==="tuy"?(s.kindLabel||"Tuỳ chọn"):({dau:"Đầu giờ",giua:"Giữa giờ",cuoi:"Cuối giờ"}[s.kind]||"")].filter(Boolean).join(" · ")+" · mở lúc "+fmtTime(s.startedAt);
     $("codeHint").textContent=s.room.scanMode==="live"?"Bấm Quét mã QR, hướng camera sau vào mã trên máy chiếu và giữ yên đến khi trang báo xong (tới lúc mã đổi, tối đa "+Math.round(periodMs(s.room)/1000)+" giây). Không dùng được ảnh chụp hay ảnh trong máy.":"Bấm Quét mã QR rồi hướng camera sau vào mã trên máy chiếu, hoặc quét bằng camera điện thoại. Mã đổi sau mỗi "+Math.round(periodMs(s.room)/1000)+" giây.";
-    applyScanMode();
+    applyScanMode(); $("btnScan").disabled=false; $("btnScan").textContent="Quét mã QR trên máy chiếu";
     if(changed){ prep=loadPrep(); pushPic(); setState("wait","Điểm danh đang mở","Làm lần lượt các bước bên dưới. Hoàn tất các bước kiểm tra trước, quét QR sau cùng."); $("form").hidden=false; }
     const ready=readyAll();
     const k=K(); const r=k?await Store.get("results/"+s.id+"/"+k).catch(()=>null):null;
@@ -1322,6 +1341,16 @@ setInterval(renderHello,30000);
 
 /* ảnh quá 15 phút tự xoá trên máy sinh viên */
 setInterval(()=>{ try{ if(prep&&prep.selfie&&prep.selfieAt&&Date.now()-prep.selfieAt>SELFIE_TTL){ camState(); pill("p4"); } }catch(e){} },30000);
+
+/* sau khi giảng viên đóng điểm danh: về lại trang điểm danh ban đầu, hiện đủ các mục để chuẩn bị cho lượt sau */
+var resetFor=null;
+function resetView(quiet,keep){ stopScan(); if(!keep) msg("",null);
+  if(!quiet||keep) setState("wait","Đang chờ giảng viên mở lượt điểm danh mới","Chuẩn bị trước các bước bên dưới. Khi giảng viên mở điểm danh, trang tự cập nhật và nút Quét mã QR sẽ dùng được.");
+  if(!keep){ ["p2","p3","p5"].forEach(id=>pill(id)); camState(); if(!prep.selfie) pill("p4"); }
+  $("form").hidden=false; $("reqBox").hidden=true; ["stepGeo","stepIp","stepCam"].forEach(id=>$(id)&&($(id).hidden=false));
+  $("liveScan").hidden=false; $("codeIn").hidden=true; $("btnSend").hidden=true; $("btnScan").disabled=true; $("btnScan").textContent="Chờ giảng viên mở điểm danh";
+  $("codeHint").textContent="Giảng viên chưa mở điểm danh. Khi mở, bấm Quét mã QR và hướng camera sau vào mã trên máy chiếu.";
+  if(!quiet) scrollTo({top:0,behavior:"smooth"}); }
 
 </script>
 </body>
