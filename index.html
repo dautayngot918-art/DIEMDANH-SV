@@ -288,6 +288,10 @@ header.top>div:first-child>.sub{grid-column:1/-1;margin:-6px 0 0}
 .cf-frame .cf-btn.ok{background:#2fbf71}
 .cf-frame .cf-txt{text-shadow:0 1px 3px rgba(0,0,0,.6)}
 .cf-guide{top:44%;height:62%;width:52%}
+/* chặn chạm vào video: iPhone không bật trình phát toàn màn hình */
+#cfVideo,#scanVideo,#video{pointer-events:none}
+#cfVideo::-webkit-media-controls,#scanVideo::-webkit-media-controls{display:none!important}
+#cfVideo::-webkit-media-controls-start-playback-button{display:none!important;-webkit-appearance:none}
 /* ===================== GIAO DIỆN MỚI: thanh ứng dụng, màu, khung ===================== */
 :root{
   --bg:#f5f3fa; --surface:#ffffff; --ink:#1e1832; --muted:#665f7b; --line:#e4def1;
@@ -800,7 +804,7 @@ table th{letter-spacing:.03em}
    SHEET_URL: địa chỉ ứng dụng web Apps Script (kết thúc bằng /exec) để mọi máy dùng chung dữ liệu.
    Giảng viên có thể đổi địa chỉ trong Cài đặt; sinh viên nhận địa chỉ mới qua link giảng viên gửi (#u=…). */
 const SHEET_URL_BUILT = "https://script.google.com/macros/s/AKfycbxZtZucyz4x_VCvEeC90bWI5B2o2-KbfffusQuK54SwIQ0UgKN8jjKE3guo3pcsUBGUDA/exec";
-const APP_VER = "Bản 1/11z-chụp ảnh trong khung · nền tím";
+const APP_VER = "Bản 1/11za-camera iPhone · nền tím";
 const SHEET_URL = (()=>{ try{ const m=location.hash.match(/[#&]u=([^&]+)/); if(m){ const u=decodeURIComponent(m[1]); if(/^https:\/\/script\.google\.com\/.+\/exec$/.test(u)) localStorage.setItem("dd-sheet-url",u); history.replaceState(null,"",location.pathname+location.search); } return localStorage.getItem("dd-sheet-url")||SHEET_URL_BUILT; }catch(e){ return SHEET_URL_BUILT; } })();
 const WINDOW_MS = 5000;          // mã đổi sau mỗi 5 giây
 
@@ -1015,9 +1019,18 @@ function pushPic(){ if(!me||!prep.selfie||prep.picAt===prep.selfieAt) return;
   const at=prep.selfieAt; Store.set("checkins/pic/"+me.k,{img:prep.selfie,at}).then(()=>{ prep.picAt=at; savePrep(); }).catch(()=>{}); }
 function stopCam(){ stream?.getTracks().forEach(t=>t.stop()); stream=null; }
 /* chụp ảnh khuôn mặt: mở khung camera toàn màn hình nền đen, nút chụp tròn, xem lại rồi chọn Dùng ảnh / Chụp lại */
-function grabFrame(v){
-  const c=document.createElement("canvas"), s=Math.min(v.videoWidth,v.videoHeight); c.width=c.height=200;
-  const ctx=c.getContext("2d"); ctx.translate(200,0); ctx.scale(-1,1); ctx.drawImage(v,(v.videoWidth-s)/2,(v.videoHeight-s)/2,s,s,0,0,200,200);
+/* iPhone: trình duyệt trong Zalo/Messenger/Facebook… hay bật trình phát video toàn màn hình (nút ✕, "TRỰC TIẾP").
+   Ép video phát ngay trong trang; nếu máy vẫn bật toàn màn hình thì thoát ra và dùng camera của điện thoại. */
+const IN_APP=/FBAN|FBAV|FB_IAB|Instagram|Messenger|Zalo|Line\/|KAKAOTALK|MicroMessenger|TikTok|musical_ly/i.test(navigator.userAgent);
+let noInline=false;
+function inlineVideo(v,onFs,keepFs){ v.muted=true; v.defaultMuted=true; v.playsInline=true; v.controls=false; v.disablePictureInPicture=true;
+  ["playsinline","webkit-playsinline","muted","autoplay","disablepictureinpicture"].forEach(a=>v.setAttribute(a,"")); v.removeAttribute("controls");
+  if(!v._fs){ v._fs=1; v.addEventListener("webkitbeginfullscreen",()=>{ noInline=true; if(v._keepFs) return; try{ v.webkitExitFullscreen(); }catch(e){} v._onFs&&v._onFs(); }); }
+  v._onFs=onFs||null; v._keepFs=!!keepFs; }
+function grabFrame(v,noMirror){
+  const vw=v.videoWidth||v.naturalWidth, vh=v.videoHeight||v.naturalHeight;
+  const c=document.createElement("canvas"), s=Math.min(vw,vh); c.width=c.height=200;
+  const ctx=c.getContext("2d"); if(!noMirror){ ctx.translate(200,0); ctx.scale(-1,1); } ctx.drawImage(v,(vw-s)/2,(vh-s)/2,s,s,0,0,200,200);
   let sum=0; try{ const d=ctx.getImageData(0,0,200,200).data; for(let i=0;i<d.length;i+=16) sum+=d[i]+d[i+1]+d[i+2]; sum/=(d.length/16)*3; }catch(e){ sum=255; }
   if(sum<12) return null;
   /* in giờ chụp lên góc dưới bên phải ảnh: giờ:phút · ngày/tháng/năm theo đồng hồ điện thoại */
@@ -1034,24 +1047,39 @@ function camUI(){
     '<div class="cf-view"><div class="cf-frame"><video id="cfVideo" playsinline webkit-playsinline muted autoplay disablepictureinpicture></video><img id="cfShot" alt="Ảnh vừa chụp" hidden><div class="cf-guide"></div>'+
     '<p class="cf-msg" id="cfMsg">Đang mở camera…</p>'+
     '<div class="cf-bar" id="cfShoot"><button type="button" class="cf-txt" data-c="x">Huỷ</button><button type="button" class="cf-shutter" data-c="snap" aria-label="Chụp" disabled></button><span class="cf-txt"></span></div>'+
+    '<div class="cf-bar" id="cfNative" hidden><button type="button" class="cf-txt" data-c="x">Huỷ</button><button type="button" class="cf-btn ok" data-c="native">📷 Mở camera điện thoại</button></div>'+
+    '<input type="file" id="cfFile" accept="image/*" capture="user" hidden>'+
     '<div class="cf-bar" id="cfReview" hidden><button type="button" class="cf-btn" data-c="again">↺ Chụp lại</button><button type="button" class="cf-btn ok" data-c="use">✓ Lưu ảnh</button></div>'+
     '</div></div>';
   document.body.appendChild(w);
   let shot=null;
-  const view=rev=>{ $("cfShoot").hidden=rev; $("cfReview").hidden=!rev; $("cfShot").hidden=!rev; $("cfVideo").hidden=rev; };
+  const view=(rev,nat)=>{ $("cfShoot").hidden=rev||!!nat; $("cfNative").hidden=rev||!nat; $("cfReview").hidden=!rev; $("cfShot").hidden=!rev; $("cfVideo").hidden=rev||!!nat; };
+  /* cách 2: mở thẳng camera của điện thoại (chỉ chụp, không chọn ảnh từ thư viện), ảnh về lại khung để xem, chụp lại hay lưu */
+  const nativeMode=t=>{ stopCam(); view(false,true); $("cfMsg").textContent=t||"Bấm Mở camera điện thoại, chụp mặt rồi bấm Dùng ảnh."; };
+  $("cfFile").addEventListener("change",()=>{ const f=$("cfFile").files[0]; $("cfFile").value=""; if(!f) return;
+    if(f.lastModified&&Math.abs(Date.now()-f.lastModified)>3*60000){ $("cfMsg").textContent="Chỉ nhận ảnh vừa chụp. Bấm Mở camera điện thoại để chụp mới."; return; }
+    const u=URL.createObjectURL(f), im=new Image(); im.onload=()=>{ shot=grabFrame(im,true); URL.revokeObjectURL(u);
+      if(!shot){ $("cfMsg").textContent="Ảnh bị đen, chụp lại nơi đủ sáng."; return; }
+      $("cfShot").src=shot.url; view(true); $("cfMsg").textContent="Xem lại ảnh. Rõ mặt thì bấm Lưu ảnh, chưa được thì bấm Chụp lại."; };
+    im.onerror=()=>{ URL.revokeObjectURL(u); $("cfMsg").textContent="Không đọc được ảnh, chụp lại."; }; im.src=u; });
   const close=()=>{ stopCam(); w.hidden=true; document.body.style.overflow=""; };
   w.addEventListener("click",e=>{ const b=e.target.closest("[data-c]"); if(!b) return; const c=b.dataset.c;
     if(c==="x"){ close(); return; }
     if(c==="snap"){ const v=$("cfVideo"); if(!v.videoWidth) return; shot=grabFrame(v); if(!shot){ $("cfMsg").textContent="Ảnh bị đen. Kiểm tra camera không bị che, đủ ánh sáng rồi chụp lại."; return; }
       $("cfShot").src=shot.url; view(true); $("cfMsg").textContent="Xem lại ảnh. Rõ mặt thì bấm Lưu ảnh, chưa được thì bấm Chụp lại."; return; }
+    if(c==="native"){ $("cfFile").click(); return; }
+    if(c==="again"&&(noInline||IN_APP)){ shot=null; $("cfFile").click(); return; }
     if(c==="again"){ shot=null; view(false); $("cfMsg").textContent="Đưa khuôn mặt vào giữa khung rồi bấm nút tròn để chụp."; return; }
     if(c==="use"&&shot){ prep.selfie=shot.url; prep.selfieAt=shot.at; savePrep(); close(); camState(); msg("",null); pushPic(); }
   });
-  w._open=async()=>{ shot=null; view(false); w.hidden=false; document.body.style.overflow="hidden"; const sh=w.querySelector(".cf-shutter"); sh.disabled=true; $("cfMsg").textContent="Đang mở camera…";
+  w._open=async()=>{ shot=null; w.hidden=false; document.body.style.overflow="hidden"; const sh=w.querySelector(".cf-shutter"); sh.disabled=true;
     stopCam();
+    if(noInline||IN_APP||!navigator.mediaDevices?.getUserMedia){ nativeMode(); $("cfFile").click(); return; }
+    view(false); $("cfMsg").textContent="Đang mở camera…";
     try{
       stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:720},height:{ideal:720}},audio:false});
-      const v=$("cfVideo"); v.playsInline=true; v.setAttribute("playsinline",""); v.srcObject=stream; await v.play().catch(()=>{});
+      const v=$("cfVideo"); inlineVideo(v,()=>nativeMode("Máy này không hiện camera trong trang được. Bấm Mở camera điện thoại để chụp.")); v.srcObject=stream; await v.play().catch(()=>{});
+      if(noInline) return;
       /* chờ camera ra hình thật rồi mới cho chụp, tránh ảnh đen */
       const t0=Date.now(); while(stream && (!v.videoWidth||v.readyState<2) && Date.now()-t0<8000) await new Promise(r=>setTimeout(r,150));
       if(!stream||w.hidden) return;
@@ -1096,7 +1124,7 @@ const JSQR_URL="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js";
 let scanStream=null, scanTimer=null, scanSeen=null;
 function scanTxt(t){ $("scanTxt").textContent=t; }
 function scanProg(n){ $("scanProg").hidden=!n&&n!==0; [...$("scanProg").children].forEach((i,j)=>i.classList.toggle("on",j<n)); }
-function stopScan(){ clearInterval(scanTimer); scanTimer=null; scanStream?.getTracks().forEach(t=>t.stop()); scanStream=null; $("scanBox").hidden=true; $("btnScan").hidden=false; }
+function stopScan(){ try{ const sv=$("scanVideo"); if(sv&&sv.webkitDisplayingFullscreen) sv.webkitExitFullscreen(); }catch(e){} clearInterval(scanTimer); scanTimer=null; scanStream?.getTracks().forEach(t=>t.stop()); scanStream=null; $("scanBox").hidden=true; $("btnScan").hidden=false; }
 async function startScan(){
   if(!readyAll()){ msg("bad","Hoàn tất các bước có dấu đỏ hoặc chưa làm ở trên trước khi quét."); return; }
   msg("",null); $("btnScan").hidden=true; scanTxt("Đang mở camera…");
@@ -1107,7 +1135,7 @@ async function startScan(){
       detect=async v=>{ const w=Math.min(640,v.videoWidth), h=Math.round(v.videoHeight*w/v.videoWidth); if(!w||!h) return null; cv.width=w; cv.height=h; cx.drawImage(v,0,0,w,h); const r=jsQR(cx.getImageData(0,0,w,h).data,w,h,{inversionAttempts:"dontInvert"}); return r?.data||null; }; }
     scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1280}},audio:false});
   }catch(e){ stopScan(); scanTxt(""); msg("bad",e&&e.name==="NotAllowedError"?"Bạn chưa cho phép dùng camera. Cho phép camera rồi bấm Quét lại.":"Không mở được camera hoặc bộ đọc QR. Kiểm tra kết nối mạng, cho phép camera rồi thử lại."); return; }
-  const v=$("scanVideo"); v.srcObject=scanStream; await v.play().catch(()=>{}); $("scanBox").hidden=false; scanSeen=null; scanProg(0);
+  const v=$("scanVideo"); inlineVideo(v,null,true); v.srcObject=scanStream; await v.play().catch(()=>{}); $("scanBox").hidden=false; scanSeen=null; scanProg(0);
   scanTxt("Hướng camera vào mã QR trên máy chiếu.");
   const started=Date.now(); let busy=false;
   scanTimer=setInterval(async()=>{
